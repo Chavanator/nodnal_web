@@ -1,0 +1,508 @@
+---
+import { dict, type Locale } from '../i18n/dict';
+
+// Hero cinematográfico del home: video a pantalla completa + secuencia
+// tipográfica (logo → slogan → servicios letra por letra, en bucle).
+// Un único componente compartido ES/EN; los textos llegan de dict.
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = dict[locale];
+const seq = t.home.heroSequence;
+const eventsHref = locale === 'es' ? '/es/eventos/' : '/en/events/';
+const servicesHref = locale === 'es' ? '/es/servicios/' : '/en/services/';
+// Versión accesible completa del mensaje (sin anunciar carácter a carácter).
+const accessibleMessage = seq.lines.join(' ');
+// Texto estático visible si no hay JS (el contenedor es aria-hidden,
+// por eso la copia para lectores vive en .sr-only).
+const staticLines = seq.lines.join('  ·  ');
+---
+
+<section
+  class="cinema"
+  data-seq-lines={JSON.stringify(seq.lines)}
+>
+  <video
+    class="cinema-video"
+    autoplay
+    muted
+    loop
+    playsinline
+    preload="auto"
+    poster="/img/nodnal-hero-poster.jpg"
+    aria-hidden="true"
+    tabindex="-1"
+  >
+    <source src="/videos/nodnal-hero.mp4" type="video/mp4" />
+  </video>
+  <div class="cinema-scrim" aria-hidden="true"></div>
+
+  <div class="cinema-stage">
+    <div class="cine-head">
+      <p class="cine-logo" aria-hidden="true">NODNAL</p>
+      <h1 class="cine-slogan">{seq.slogan}</h1>
+    </div>
+    <div class="cine-lines" aria-hidden="true">
+      <p class="cine-type"><span class="cine-type-text">{staticLines}</span></p>
+    </div>
+    <p class="sr-only">{accessibleMessage}</p>
+    <p class="cine-cta">
+      <a class="cine-btn cine-btn-primary" href={eventsHref}>{t.home.heroCta}</a>
+      <a class="cine-btn cine-btn-ghost" href={servicesHref}>{t.home.heroCtaSecondary}</a>
+    </p>
+  </div>
+
+  <div class="cine-scroll" aria-hidden="true"></div>
+</section>
+
+<script>
+  // Secuencia del hero. Duraciones y pausas en un solo lugar (T).
+  // Dos bucles paralelos e infinitos: (A) logo ↔ slogan cada 8 s y
+  // (B) servicios tecleados; tras la última línea vuelve a empezar.
+  // Sin librerías: temporizadores registrados y limpiados en cada reinicio.
+  const T = {
+    headHold: 8000, // logo y slogan: 8 s cada uno
+    logoOut: 950, // debe coincidir con el keyframe cine-logo-out
+    sloganOut: 1000, // debe coincidir con la transición opacity del slogan
+    linesIn: 700,
+    prePhrase: 250,
+    typeSpeed: 62, // ms por carácter (escritura real letra a letra)
+    phraseHold: 950,
+    phraseOut: 600,
+    lineGap: 300,
+    restartHold: 2400, // se sostiene la última línea antes de reiniciar el ciclo
+  };
+
+  const root = document.querySelector<HTMLElement>('.cinema');
+  if (root && !root.hasAttribute('data-seq-bound')) {
+    root.setAttribute('data-seq-bound', '');
+
+    const lines: string[] = JSON.parse(root.dataset.seqLines ?? '[]');
+    const logo = root.querySelector<HTMLElement>('.cine-logo');
+    const slogan = root.querySelector<HTMLElement>('.cine-slogan');
+    const linesBox = root.querySelector<HTMLElement>('.cine-lines');
+    const typeEl = root.querySelector<HTMLElement>('.cine-type');
+    const typeText = root.querySelector<HTMLElement>('.cine-type-text');
+    const cta = root.querySelector<HTMLElement>('.cine-cta');
+    const video = root.querySelector<HTMLVideoElement>('.cinema-video');
+    const source = root.querySelector<HTMLSourceElement>('source');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    // Temporizadores vivos: se limpian al cancelar/reiniciar la secuencia.
+    const timers = new Set<number>();
+    const sleep = (ms: number) =>
+      new Promise<void>((resolve) => {
+        const id = window.setTimeout(() => {
+          timers.delete(id);
+          resolve();
+        }, ms);
+        timers.add(id);
+      });
+    const clearTimers = () => {
+      timers.forEach((id) => window.clearTimeout(id));
+      timers.clear();
+    };
+
+    // Escritura letra por letra segura con acentos (Array.from por código punto).
+    const typeInto = (el: HTMLElement, text: string, speed: number) =>
+      new Promise<void>((resolve) => {
+        const chars = Array.from(text);
+        let i = 0;
+        el.textContent = '';
+        const step = () => {
+          i += 1;
+          el.textContent = chars.slice(0, i).join('');
+          if (i < chars.length) {
+            const id = window.setTimeout(() => {
+              timers.delete(id);
+              step();
+            }, speed);
+            timers.add(id);
+          } else {
+            resolve();
+          }
+        };
+        step();
+      });
+
+    const resetDom = () => {
+      clearTimers();
+      root?.classList.remove('is-done');
+      logo?.classList.remove('on', 'off');
+      slogan?.classList.remove('on');
+      linesBox?.classList.remove('on');
+      cta?.classList.remove('on');
+      typeEl?.classList.remove('show', 'typing', 'fade');
+      if (typeText) typeText.textContent = '';
+    };
+
+    const hideVideo = () => {
+      if (video) video.style.display = 'none';
+    };
+    video?.addEventListener('error', hideVideo);
+    source?.addEventListener('error', hideVideo);
+
+    const showFinalState = () => {
+      // Movimiento reducido o sin JS: contenido completo inmediato.
+      clearTimers();
+      root?.classList.add('is-done');
+      if (typeText) typeText.textContent = staticLinesText();
+      if (video) video.pause();
+    };
+    const staticLinesText = () => lines.join('  ·  ');
+
+    const runHeadLoop = async () => {
+      // Bucle A: logo → slogan → logo …, 8 s visibles cada uno.
+      for (;;) {
+        logo?.classList.add('on');
+        await sleep(T.headHold);
+        logo?.classList.remove('on');
+        logo?.classList.add('off');
+        await sleep(T.logoOut);
+        logo?.classList.remove('off');
+        slogan?.classList.add('on');
+        await sleep(T.headHold);
+        slogan?.classList.remove('on');
+        await sleep(T.sloganOut);
+      }
+    };
+
+    const runTypeLoop = async () => {
+      // Bucle B: servicios letra por letra; tras la última línea se
+      // sostiene un momento y el ciclo empieza otra vez.
+      linesBox?.classList.add('on');
+      await sleep(T.linesIn);
+      cta?.classList.add('on');
+      await sleep(T.prePhrase);
+
+      for (;;) {
+        for (let i = 0; i < lines.length; i += 1) {
+          if (!typeEl || !typeText) return;
+          typeEl.classList.add('show', 'typing');
+          await typeInto(typeText, lines[i], T.typeSpeed);
+          typeEl.classList.remove('typing');
+          // La última línea se sostiene antes de reiniciar el ciclo.
+          await sleep(i === lines.length - 1 ? T.restartHold : T.phraseHold);
+          typeEl.classList.add('fade');
+          await sleep(T.phraseOut);
+          typeText.textContent = '';
+          typeEl.classList.remove('fade');
+          await sleep(T.lineGap);
+        }
+      }
+    };
+
+    const run = () => {
+      if (reduce.matches) {
+        showFinalState();
+        return;
+      }
+      resetDom();
+      if (video && video.paused) video.play().catch(hideVideo);
+
+      // Los bucles se detienen al limpiar temporizadores (sus sleep
+      // pendientes nunca resuelven) y run() relanza bucles nuevos.
+      void runHeadLoop();
+      void runTypeLoop();
+    };
+
+    run();
+
+    // Restauración desde bfcache: reinicia la secuencia limpia.
+    window.addEventListener('pageshow', (ev) => {
+      if (ev.persisted) run();
+    });
+    reduce.addEventListener?.('change', () => run());
+  }
+</script>
+
+<style>
+  .cinema {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    width: 100vw;
+    max-width: 100%;
+    min-height: 100vh;
+    min-height: 100svh;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    padding: 7rem 1.25rem 8rem;
+    text-align: center;
+    color: var(--warm-white);
+    background:
+      var(--forest)
+      url('/img/nodnal-hero-poster.jpg') center 45% / cover no-repeat;
+  }
+  .cinema-video {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 45%;
+    pointer-events: none;
+  }
+  /* Degradados: bordes + zona de texto, sin oscurecer la imagen en exceso. */
+  .cinema-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 70% 60% at 50% 44%, rgba(16, 24, 20, 0.52), rgba(16, 24, 20, 0) 72%),
+      linear-gradient(180deg, rgba(16, 24, 20, 0.55) 0%, rgba(16, 24, 20, 0) 22%),
+      linear-gradient(0deg, rgba(16, 24, 20, 0.62) 0%, rgba(16, 24, 20, 0) 34%);
+  }
+  .cinema-stage {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    justify-items: center;
+    gap: clamp(1.1rem, 2.6vh, 1.9rem);
+    width: min(100%, 54rem);
+    text-shadow: 0 1px 22px rgba(16, 24, 20, 0.5), 0 1px 3px rgba(16, 24, 20, 0.35);
+  }
+  .cine-head {
+    position: relative;
+    display: grid;
+    width: 100%;
+    justify-items: center;
+  }
+  /* Logo: superpuesto al slogan para una disolución en el mismo lugar. */
+  .cine-logo {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    opacity: 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2.6rem, 7vw, 4.6rem);
+    letter-spacing: 0.24em;
+    text-indent: 0.24em;
+    line-height: 1;
+    color: var(--warm-white);
+  }
+  .cine-logo.on {
+    animation: cine-logo-in 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  .cine-logo.off {
+    animation: cine-logo-out 0.95s ease forwards;
+  }
+  @keyframes cine-logo-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+      filter: blur(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: blur(0);
+    }
+  }
+  @keyframes cine-logo-out {
+    from {
+      opacity: 1;
+      transform: none;
+      filter: blur(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-10px);
+      filter: blur(6px);
+    }
+  }
+  .cine-slogan {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(1.9rem, 4.8vw, 3.4rem);
+    line-height: 1.16;
+    letter-spacing: 0.01em;
+    max-width: 17ch;
+    text-wrap: balance;
+    color: var(--warm-white);
+  }
+  .cine-lines {
+    width: min(100%, 44rem);
+    font-family: var(--font-body);
+    font-size: clamp(1.05rem, 2.3vw, 1.4rem);
+    line-height: 1.55;
+    min-height: 3.2em; /* reserva estable: sin saltos de layout */
+  }
+  .cine-type {
+    margin: 0;
+    min-height: 1.55em;
+    transition: opacity 0.6s ease;
+  }
+  .cine-type.typing::after {
+    content: '';
+    display: inline-block;
+    width: 0.45ch;
+    height: 0.95em;
+    margin-left: 0.12em;
+    vertical-align: -0.1em;
+    background: var(--lavender);
+    animation: cine-caret 0.9s steps(1) infinite;
+  }
+  @keyframes cine-caret {
+    50% {
+      opacity: 0;
+    }
+  }
+  .cine-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    justify-content: center;
+    margin: 0;
+  }
+  .cine-btn {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    border-radius: 999px;
+    padding: 0.75rem 1.5rem;
+    transition:
+      transform 0.2s ease,
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      color 0.25s ease;
+  }
+  .cine-btn-primary {
+    background: var(--warm-white);
+    color: var(--forest);
+    text-shadow: none;
+  }
+  .cine-btn-ghost {
+    color: var(--warm-white);
+    border: 1px solid rgba(248, 245, 239, 0.72);
+    background: rgba(16, 24, 20, 0.42);
+    backdrop-filter: blur(4px);
+  }
+  .cine-btn:hover {
+    transform: translateY(-2px);
+  }
+  .cine-btn-primary:hover {
+    background: #fff;
+  }
+  .cine-btn-ghost:hover {
+    border-color: var(--warm-white);
+  }
+  .cine-btn:focus-visible {
+    outline: 3px solid var(--lavender);
+    outline-offset: 3px;
+  }
+  /* Indicador de desplazamiento. */
+  .cine-scroll {
+    position: absolute;
+    left: 50%;
+    bottom: 1.5rem;
+    z-index: 2;
+    width: 1px;
+    height: 54px;
+    transform: translateX(-50%);
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(248, 245, 239, 0) 0%, rgba(248, 245, 239, 0.75) 100%);
+  }
+  .cine-scroll::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: -22px;
+    width: 1px;
+    height: 20px;
+    background: var(--lavender);
+    animation: cine-scroll-run 2.4s ease-in-out infinite;
+  }
+  @keyframes cine-scroll-run {
+    0% {
+      top: -22px;
+    }
+    100% {
+      top: 56px;
+    }
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* --- Estados de la secuencia --------------------------------------- */
+  /* Sin JS: hero estático completo (el logo solo existe en la animación). */
+  /* Con JS: estados ocultos iniciales, sin destello del texto final. */
+  /* `.js` vive en <html> (ajeno a este componente) → :global() obligatorio. */
+  :global(.js) .cinema .cine-slogan {
+    opacity: 0;
+    transform: translateY(12px);
+    transition:
+      opacity 1s ease,
+      transform 1s ease;
+  }
+  :global(.js) .cinema .cine-slogan.on {
+    opacity: 1;
+    transform: none;
+  }
+  :global(.js) .cinema .cine-lines,
+  :global(.js) .cinema .cine-cta {
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+  :global(.js) .cinema .cine-lines.on,
+  :global(.js) .cinema .cine-cta.on {
+    opacity: 1;
+  }
+  :global(.js) .cinema .cine-type:not(.show) {
+    opacity: 0;
+  }
+  :global(.js) .cinema .cine-type.show {
+    opacity: 1;
+  }
+  :global(.js) .cinema .cine-type.fade {
+    opacity: 0;
+  }
+  /* Estado final (movimiento reducido): todo visible de inmediato. */
+  :global(.js) .cinema.is-done .cine-slogan,
+  :global(.js) .cinema.is-done .cine-lines,
+  :global(.js) .cinema.is-done .cine-cta {
+    opacity: 1;
+    transform: none;
+  }
+  :global(.js) .cinema.is-done .cine-type {
+    opacity: 1;
+  }
+
+  /* Movimiento reducido: sin video (se ve el póster) y sin animación. */
+  @media (prefers-reduced-motion: reduce) {
+    .cinema-video {
+      display: none;
+    }
+    .cine-scroll::after {
+      animation: none;
+      top: 16px;
+    }
+  }
+  @media (max-width: 767px) {
+    .cinema {
+      padding: 6.5rem 1.1rem 7.5rem;
+    }
+    .cine-slogan {
+      max-width: 14ch;
+    }
+  }
+</style>

@@ -1,0 +1,22 @@
+{
+  "name": "nodnal-web",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@astrojs/netlify": "^6.6.0",
+    "@astrojs/node": "^9.5.5",
+    "@astrojs/vercel": "^8.2.11",
+    "astro": "^5.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^5.9.0"
+  }
+}

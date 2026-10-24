@@ -1,0 +1,72 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { dict } from '../../../i18n/dict';
+import { posts } from '../../../lib/blog';
+
+// Versión ES: ficha con resumen y enlace al texto completo en inglés.
+// La traducción está pendiente de revisión por el cliente (CONTENT_AND_I18N).
+export function getStaticPaths() {
+  return posts.map((p) => ({ params: { slug: p.slug } }));
+}
+
+const { slug } = Astro.params;
+const post = posts.find((p) => p.slug === slug);
+if (!post) return Astro.redirect('/es/blog/');
+const b = dict.es.blog;
+const date = new Intl.DateTimeFormat('es-EC', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+}).format(new Date(`${post.date}T12:00:00Z`));
+---
+<Base
+  locale="es"
+  currentKey="blog"
+  title={`${post.titleEn} · NODNAL`}
+  description={post.summary.es}
+>
+  <div class="wrap narrow">
+    <p class="crumbs"><a href="/es/blog/">{b.backToBlog}</a></p>
+    <h1>{post.titleEn}</h1>
+    <p class="meta">
+      {dict.es.blog.byAuthor} · <time datetime={post.date}>{date}</time> · {post.minutes} {b.minutes}
+    </p>
+    <figure class="hero-fig">
+      <img src={post.image} alt={post.imageAlt} width="1200" height="800" fetchpriority="high" />
+    </figure>
+    <p class="summary">{post.summary.es}</p>
+    <p class="note" role="note">{b.translationNote}</p>
+    <p>
+      <a class="btn-primary" href={`/en/blog/${post.slug}/`}>{b.readInEnglish}</a>
+    </p>
+  </div>
+  <style>
+    .wrap { max-width: 72rem; margin-inline: auto; padding: 2rem 1.25rem 0; }
+    .narrow > * { max-width: 68ch; }
+    .narrow .hero-fig { max-width: 56rem; }
+    .crumbs { margin: 0 0 1rem; }
+    h1 { font-size: clamp(2rem, 4.5vw, 3rem); margin: 0 0 0.5rem; }
+    .meta { font-family: var(--font-ui); font-size: 0.95rem; color: var(--text-muted); margin: 0 0 1.5rem; }
+    .hero-fig { margin: 0 0 1.5rem; }
+    .hero-fig img { width: 100%; height: auto; border-radius: var(--radius); display: block; }
+    .summary { font-size: 1.25rem; }
+    .note {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      border-radius: var(--radius-small);
+      padding: 0.8rem 1rem;
+    }
+    .btn-primary {
+      display: inline-block;
+      font-family: var(--font-ui);
+      font-weight: 600;
+      background: var(--brand);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 0.7rem 1.5rem;
+      white-space: nowrap;
+    }
+    [data-theme='dark'] .btn-primary { color: var(--on-brand); }
+  </style>
+</Base>

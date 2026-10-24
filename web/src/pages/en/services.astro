@@ -1,0 +1,108 @@
+---
+import Base from '../../layouts/Base.astro';
+import ServiceIcon from '../../components/ServiceIcon.astro';
+
+// Provisional copy derived from the audit; final inventory pending
+// client confirmation (OPEN_QUESTIONS).
+const services = [
+  {
+    name: 'Guided hikes and backpacks',
+    href: '/en/events/',
+    text: 'Day and multi-day trips with a certified guide, in Ecuador and Montana. Small groups, clear itineraries and online registration.',
+    icon: 'hike',
+  },
+  {
+    name: 'Yoga events',
+    href: '/en/events/',
+    text: 'Outdoor practice for all levels: breath, gentle postures and community.',
+    icon: 'yoga',
+  },
+  {
+    name: '1-to-1 coaching',
+    href: '/en/services/one-to-one-coaching/',
+    text: 'Trauma-informed personal guidance for transitions, stuckness and personal unfolding. Free initial consult.',
+    icon: 'coaching',
+  },
+] as const;
+---
+<Base
+  locale="en"
+  currentKey="services"
+  title="Services · NODNAL"
+  description="Guided hikes, yoga events and 1-to-1 coaching in Ecuador and Montana."
+>
+  <div class="wrap">
+    <h1 data-reveal>Services</h1>
+    <p class="intro" data-reveal style="--reveal-delay: .1s">
+      Formal healing arts offerings: nature, yoga and coaching.
+      Each service states its place, price and how to take part.
+    </p>
+    <ul class="service-list">
+      {
+        services.map((s, i) => (
+          <li data-reveal style={`--reveal-delay: ${i * 0.14}s`}>
+            <a href={s.href}>
+              <span class="service-text">
+                <span class="service-name">
+                  {s.name}
+                  <span class="service-arrow" aria-hidden="true">→</span>
+                </span>
+                <span class="service-note">{s.text}</span>
+              </span>
+              <ServiceIcon name={s.icon} />
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+  <style>
+    .wrap { max-width: 72rem; margin-inline: auto; padding: 2.5rem 1.25rem 0; }
+    h1 { font-size: clamp(2.2rem, 4.5vw, 3.2rem); margin: 0 0 0.5rem; }
+    .intro { max-width: 60ch; margin: 0 0 1.5rem; font-size: 1.2rem; }
+    .service-list { list-style: none; margin: 0; padding: 0; }
+    .service-list li {
+      border-top: 1px solid var(--line);
+      transition: border-color 0.3s ease;
+    }
+    .service-list li:last-child { border-bottom: 1px solid var(--line); }
+    /* Hover: lit separator + slight shift and background tint. */
+    .service-list li:has(a:hover) { border-color: var(--brand); }
+    .service-list a {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 1.25rem 0.75rem;
+      text-decoration: none;
+      color: var(--text);
+      transition:
+        transform 0.3s ease,
+        background-color 0.3s ease;
+    }
+    .service-list a:hover {
+      transform: translateX(8px);
+      background: color-mix(in srgb, var(--surface-warm) 45%, transparent);
+    }
+    .service-text { display: grid; gap: 0.3rem; }
+    .service-name { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; }
+    .service-arrow {
+      display: inline-block;
+      margin-left: 0.5rem;
+      color: var(--brand);
+      opacity: 0.65;
+      transition:
+        transform 0.3s ease,
+        opacity 0.3s ease;
+    }
+    .service-list a:hover .service-arrow {
+      transform: translateX(6px);
+      opacity: 1;
+    }
+    .service-note { color: var(--text-muted); max-width: 70ch; }
+    @media (prefers-reduced-motion: reduce) {
+      .service-list a:hover { transform: none; }
+      .service-list a:hover .service-arrow { transform: none; }
+    }
+  </style>
+</Base>

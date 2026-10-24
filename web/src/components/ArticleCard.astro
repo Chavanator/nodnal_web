@@ -1,0 +1,86 @@
+---
+import type { Locale } from '../i18n/dict';
+import { dict } from '../i18n/dict';
+import type { BlogPost } from '../lib/blog';
+
+// Tarjeta de artículo (modo Read de Impeccable: estructura para comprender).
+interface Props {
+  post: BlogPost;
+  locale: Locale;
+}
+
+const { post, locale } = Astro.props;
+const b = dict[locale].blog;
+const href = locale === 'es' ? `/es/blog/${post.slug}/` : `/en/blog/${post.slug}/`;
+const date = new Intl.DateTimeFormat(locale === 'es' ? 'es-EC' : 'en-US', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+}).format(new Date(`${post.date}T12:00:00Z`));
+---
+<article class="card" data-reveal="scale">
+  <a class="card-link" href={href} aria-label={post.titleEn}>
+    <img src={post.image} alt={post.imageAlt} width="1200" height="800" loading="lazy" />
+  </a>
+  <div class="card-body">
+    <p class="meta">
+      <time datetime={post.date}>{date}</time> · {post.minutes} {b.minutes}
+    </p>
+    <h2><a href={href}>{post.titleEn}</a></h2>
+    <p>{post.summary[locale]}</p>
+  </div>
+</article>
+
+<style>
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Stagger escalonado del reveal dentro de la cuadrícula. */
+  .card:nth-child(3n + 2) {
+    --reveal-delay: 0.1s;
+  }
+  .card:nth-child(3n) {
+    --reveal-delay: 0.2s;
+  }
+  .card-link {
+    display: block;
+    overflow: hidden; /* recorte del micro-zoom de portada */
+  }
+  .card-link img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s ease;
+  }
+  .card:hover .card-link img {
+    transform: scale(1.05);
+  }
+  .card-body { padding: 1.1rem 1.2rem 1.3rem; }
+  .card-body h2 { margin: 0 0 0.5rem; font-size: 1.45rem; }
+  .card-body h2 a {
+    color: var(--text);
+    text-decoration: none;
+    transition: color 0.25s ease;
+  }
+  .card-body h2 a:hover {
+    color: var(--brand-ink);
+  }
+  .card-body p { margin: 0 0 0.5rem; }
+  .meta {
+    font-family: var(--font-ui);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 0 0 0.5rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card-link img { transition: none; }
+    .card:hover .card-link img { transform: none; }
+  }
+</style>

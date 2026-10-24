@@ -1,0 +1,21 @@
+# Dependencias y builds
+node_modules/
+web/dist/
+web/.astro/
+web/.netlify/
+web/.vercel/
+.netlify/
+.vercel/
+
+# Entornos y secretos
+.env
+.env.*
+*.local
+
+# Dump de referencia del sitio antiguo (186 MB, fuera del repo)
+images.squarespace-cdn.com/
+
+# SO / editores
+.DS_Store
+Thumbs.db
+*.swp

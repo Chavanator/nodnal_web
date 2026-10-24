@@ -1,0 +1,32 @@
+---
+import Base from '../../layouts/Base.astro';
+import ArticleCard from '../../components/ArticleCard.astro';
+import { dict } from '../../i18n/dict';
+import { posts } from '../../lib/blog';
+
+const b = dict.en.blog;
+---
+<Base
+  locale="en"
+  currentKey="blog"
+  title="Blog · NODNAL"
+  description="Mountain and initiation stories written by Landon Kinsey."
+>
+  <div class="wrap">
+    <h1 data-reveal>{b.title}</h1>
+    <p class="intro" data-reveal style="--reveal-delay: .1s">{b.intro}</p>
+    <div class="grid">
+      {posts.map((post) => <ArticleCard post={post} locale="en" />)}
+    </div>
+  </div>
+  <style>
+    .wrap { max-width: 72rem; margin-inline: auto; padding: 2.5rem 1.25rem 0; }
+    h1 { font-size: clamp(2.2rem, 4.5vw, 3.2rem); margin: 0 0 0.5rem; }
+    .intro { max-width: 60ch; margin: 0 0 1.5rem; font-size: 1.2rem; }
+    .grid {
+      display: grid;
+      gap: 1.75rem;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+    }
+  </style>
+</Base>

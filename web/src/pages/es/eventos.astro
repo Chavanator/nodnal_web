@@ -1,0 +1,380 @@
+---
+import Base from '../../layouts/Base.astro';
+import EventCard from '../../components/EventCard.astro';
+import RegistrationModal from '../../components/RegistrationModal.astro';
+import { dict } from '../../i18n/dict';
+import { upcomingEvents, formatEventDate } from '../../lib/events';
+
+const t = dict.es;
+const e = t.eventsPage;
+const list = upcomingEvents();
+
+// Meses a mostrar: mes actual (aunque esté vacío) + meses con eventos futuros.
+// La navegación nunca retrocede antes del mes actual.
+const now = new Date();
+const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+const byMonth = new Map<string, typeof list>();
+if (![...list].some((ev) => monthKeyOf(ev) === currentKey)) {
+  byMonth.set(currentKey, []);
+}
+for (const ev of list) {
+  const key = monthKeyOf(ev);
+  const group = byMonth.get(key) ?? [];
+  group.push(ev);
+  byMonth.set(key, group);
+}
+function monthKeyOf(ev: (typeof list)[number]): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    timeZone: ev.timezone,
+  }).format(new Date(ev.startAt));
+  return parts.slice(0, 7);
+}
+const monthName = (key: string, sampleTz: string) =>
+  new Intl.DateTimeFormat('es-EC', { month: 'long', year: 'numeric', timeZone: sampleTz }).format(
+    new Date(`${key}-02T12:00:00Z`),
+  );
+
+function monthCells(year: number, month: number, tz: string) {
+  // Celdas del mes con eventos; días con evento enlazan al detalle.
+  const first = new Date(Date.UTC(year, month - 1, 1));
+  const startDay = (first.getUTCDay() + 6) % 7; // lunes = 0
+  const days = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const cells: ({ day: number; slugs: string[] } | null)[] = [];
+  for (let i = 0; i < startDay; i++) cells.push(null);
+  for (let d = 1; d <= days; d++) {
+    const slugs: string[] = [];
+    for (const ev of list) {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        timeZone: ev.timezone,
+      }).format(new Date(ev.startAt));
+      const [y, m, dd] = parts.split('-').map(Number);
+      if (y === year && m === month && dd === d) slugs.push(ev.slug);
+    }
+    cells.push({ day: d, slugs });
+  }
+  return cells;
+}
+const weekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+---
+<Base
+  locale="es"
+  currentKey="events"
+  title="Eventos · NODNAL"
+  description="Eventos de naturaleza, yoga y coaching: flyers, fechas, cupo y registro en línea."
+>
+  <div class="wrap">
+    <h1>{e.title}</h1>
+    <p class="intro">{e.intro}</p>
+    <p class="view-toggle" role="group" aria-label={`${e.viewCards} / ${e.viewCalendar}`}>
+      <span class="toggle-pill" aria-hidden="true"></span>
+      <button type="button" data-fill data-view-btn="cards" aria-pressed="true">{e.viewCards}</button>
+      <button type="button" data-fill data-view-btn="calendar" aria-pressed="false">{e.viewCalendar}</button>
+    </p>
+
+    <div data-view="cards">
+      <div class="grid">
+        {
+          list.map((ev) => (
+            <EventCard
+              event={ev}
+              locale="es"
+              moreInfo={e.moreInfo}
+              back={e.back}
+              register={e.register}
+              detailHref={`/es/eventos/${ev.slug}/`}
+              fullDetail={e.fullDetail}
+              demoLabel={e.demo}
+            />
+          ))
+        }
+      </div>
+    </div>
+
+    <div data-view="calendar" hidden>
+      <div class="cal-nav">
+        <button type="button" data-fill data-cal-prev aria-label={e.calPrev}>‹</button>
+        <button type="button" data-fill data-cal-today>{e.calToday}</button>
+        <button type="button" data-fill data-cal-next aria-label={e.calNext}>›</button>
+      </div>
+      {
+        [...byMonth.keys()].sort().map((key) => {
+          const group = byMonth.get(key) ?? [];
+          const [y, m] = key.split('-').map(Number);
+          const sampleTz = group[0]?.timezone ?? 'America/Guayaquil';
+          const cells = monthCells(y, m, sampleTz);
+          const label = monthName(key, sampleTz);
+          return (
+            <section class="month" data-month={key} aria-label={label}>
+              <h2>{label}</h2>
+              {group.length === 0 && <p>{e.calNoEvents}</p>}
+              <div class="cal" role="table" aria-label={label}>
+                <div class="cal-head" role="row">
+                  {weekdays.map((w) => (
+                    <span role="columnheader">{w}</span>
+                  ))}
+                </div>
+                <div class="cal-grid">
+                  {cells.map((c) =>
+                    c === null ? (
+                      <span class="empty-cell" />
+                    ) : (
+                      <span class:list={['day-cell', c.slugs.length > 0 && 'has-events']}>
+                        <span class="day-num">{c.day}</span>
+                        {c.slugs.map((slug) => {
+                          const ev = list.find((x) => x.slug === slug)!;
+                          return (
+                            <a class="day-event" href={`/es/eventos/${slug}/`}>
+                              {ev.text.es.title}
+                            </a>
+                          );
+                        })}
+                      </span>
+                    ),
+                  )}
+                </div>
+              </div>
+              <ul class="month-list">
+                {group.map((ev) => (
+                  <li>
+                    <a href={`/es/eventos/${ev.slug}/`}>{ev.text.es.title}</a>
+                    ,
+                    {formatEventDate(ev.startAt, ev.timezone, 'es')}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })
+      }
+    </div>
+  </div>
+
+  <RegistrationModal locale="es" />
+
+  <script>
+    if (!document.documentElement.hasAttribute('data-view-bound')) {
+      document.documentElement.setAttribute('data-view-bound', '');
+      // Indicador deslizante (pill) detrás del botón activo del toggle.
+      const toggle = document.querySelector('.view-toggle');
+      const pill = toggle?.querySelector('.toggle-pill');
+      const movePill = () => {
+        if (!toggle || !pill) return;
+        const active = toggle.querySelector('[data-view-btn][aria-pressed="true"]');
+        if (!active) return;
+        pill.style.width = `${(active as HTMLElement).offsetWidth}px`;
+        pill.style.transform = `translateX(${(active as HTMLElement).offsetLeft}px)`;
+        toggle.setAttribute('data-pill-ready', '');
+      };
+      movePill();
+      document.fonts?.ready.then(movePill);
+      window.addEventListener('resize', movePill);
+      document.addEventListener('click', (ev) => {
+        const btn = (ev.target as HTMLElement).closest('[data-view-btn]');
+        if (!btn) return;
+        const view = btn.getAttribute('data-view-btn');
+        document.querySelectorAll('[data-view-btn]').forEach((b) => {
+          b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+        });
+        document.querySelectorAll('[data-view]').forEach((panel) => {
+          if (panel.getAttribute('data-view') === view) panel.removeAttribute('hidden');
+          else panel.setAttribute('hidden', '');
+        });
+        movePill();
+      });
+    }
+    // Paginador mensual: un mes visible, sin retroceder antes del actual.
+    if (!document.documentElement.hasAttribute('data-cal-bound')) {
+      document.documentElement.setAttribute('data-cal-bound', '');
+      const showMonth = (cal: Element, index: number, dir = 0) => {
+        const months = [...cal.querySelectorAll('[data-month]')];
+        months.forEach((sec, i) => {
+          if (i === index) {
+            sec.removeAttribute('hidden');
+            if (dir) {
+              const el = sec as HTMLElement;
+              el.style.setProperty('--enter-x', `${dir * 16}px`);
+              el.classList.remove('cal-enter');
+              void el.offsetWidth; // reinicia la animación
+              el.classList.add('cal-enter');
+            }
+          } else {
+            sec.setAttribute('hidden', '');
+            sec.classList.remove('cal-enter');
+          }
+        });
+        const prev = cal.querySelector('[data-cal-prev]');
+        const next = cal.querySelector('[data-cal-next]');
+        if (prev) {
+          if (index <= 0) prev.setAttribute('disabled', '');
+          else prev.removeAttribute('disabled');
+        }
+        if (next) {
+          if (index >= months.length - 1) next.setAttribute('disabled', '');
+          else next.removeAttribute('disabled');
+        }
+      };
+      const currentIndex = (cal: Element) => {
+        const months = [...cal.querySelectorAll('[data-month]')];
+        const visible = months.findIndex((sec) => !sec.hasAttribute('hidden'));
+        return visible < 0 ? 0 : visible;
+      };
+      document.querySelectorAll('[data-view="calendar"]').forEach((cal) => showMonth(cal, 0));
+      document.addEventListener('click', (ev) => {
+        const el = ev.target as HTMLElement;
+        const cal = el.closest('[data-view="calendar"]');
+        if (!cal) return;
+        if (el.closest('[data-cal-prev]')) showMonth(cal, Math.max(0, currentIndex(cal) - 1), -1);
+        else if (el.closest('[data-cal-next]')) {
+          const months = cal.querySelectorAll('[data-month]').length;
+          showMonth(cal, Math.min(months - 1, currentIndex(cal) + 1), 1);
+        } else if (el.closest('[data-cal-today]')) showMonth(cal, 0, currentIndex(cal) > 0 ? -1 : 0);
+      });
+    }
+  </script>
+
+  <style>
+    .wrap { max-width: 72rem; margin-inline: auto; padding: 2.5rem 1.25rem 0; }
+    h1 { font-size: clamp(2.2rem, 4.5vw, 3.2rem); margin: 0 0 0.5rem; }
+    .intro { max-width: 60ch; margin: 0 0 1.5rem; font-size: 1.2rem; }
+    .view-toggle {
+      position: relative;
+      display: inline-flex;
+      gap: 0.5rem;
+      margin: 0 0 1.5rem;
+    }
+    .toggle-pill {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 0;
+      width: 0;
+      border-radius: 999px;
+      background: var(--brand);
+      pointer-events: none;
+      transition:
+        transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+        width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .view-toggle button {
+      position: relative;
+      z-index: 1;
+      font-family: var(--font-ui);
+      font-weight: 600;
+      font-size: 0.95rem;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 0.5rem 1.1rem;
+      cursor: pointer;
+      transition:
+        background-color 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease;
+    }
+    .view-toggle button[aria-pressed='true'] {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: #fff;
+    }
+    /* Con JS el pill pinta el fondo; el botón activo queda transparente. */
+    .view-toggle[data-pill-ready] button[aria-pressed='true'] {
+      background: transparent;
+      border-color: transparent;
+    }
+    [data-theme='dark'] .view-toggle button[aria-pressed='true'] { color: var(--on-brand); }
+    .grid {
+      display: grid;
+      gap: 1.75rem;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+    }
+    .month { margin-bottom: 2.5rem; }
+    .month h2 { text-transform: capitalize; margin: 0 0 1rem; }
+    .cal-nav { display: flex; gap: 0.5rem; align-items: center; margin: 0 0 1.25rem; }
+    .cal-nav button {
+      font-family: var(--font-ui);
+      font-weight: 700;
+      font-size: 1.1rem;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 999px;
+      min-width: 2.75rem;
+      height: 2.75rem;
+      padding: 0 0.9rem;
+      cursor: pointer;
+    }
+    .cal-nav button[data-cal-today] { font-size: 0.95rem; font-weight: 600; }
+    .cal-nav button:disabled { opacity: 0.4; cursor: default; }
+    .cal-head,
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+    }
+    .cal-head span {
+      font-family: var(--font-ui);
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-align: center;
+      padding: 0.4rem 0;
+      color: var(--text-muted);
+    }
+    .day-cell {
+      min-height: 4.2rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-small);
+      padding: 0.3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      background: var(--surface);
+    }
+    .day-num { font-family: var(--font-ui); font-size: 0.85rem; color: var(--text-muted); }
+    /* Insignia: punto de color en los días con eventos. */
+    .day-cell.has-events .day-num::after {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      margin-left: 0.3rem;
+      vertical-align: middle;
+      border-radius: 50%;
+      background: var(--brand);
+    }
+    .day-event {
+      font-size: 0.85rem;
+      line-height: 1.3;
+      background: var(--surface-warm);
+      border-radius: 4px;
+      padding: 0.15rem 0.35rem;
+    }
+    .empty-cell { min-height: 4.2rem; }
+    .month-list { margin: 1rem 0 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; }
+    /* Entrada del mes al usar el paginador: leve deslizamiento horizontal. */
+    @keyframes cal-enter {
+      from {
+        opacity: 0;
+        transform: translateX(var(--enter-x, 16px));
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    .month.cal-enter { animation: cal-enter 0.38s ease both; }
+    @media (prefers-reduced-motion: reduce) {
+      .month.cal-enter { animation: none; }
+      .toggle-pill { transition: none; }
+    }
+    @media (max-width: 767px) {
+      .day-cell { min-height: 3rem; }
+    }
+  </style>
+</Base>

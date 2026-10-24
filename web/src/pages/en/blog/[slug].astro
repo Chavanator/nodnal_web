@@ -1,0 +1,85 @@
+---
+import Base from '../../../layouts/Base.astro';
+import ArticleCard from '../../../components/ArticleCard.astro';
+import { dict } from '../../../i18n/dict';
+import { posts } from '../../../lib/blog';
+
+export function getStaticPaths() {
+  return posts.map((p) => ({ params: { slug: p.slug } }));
+}
+
+const { slug } = Astro.params;
+const post = posts.find((p) => p.slug === slug);
+if (!post) return Astro.redirect('/en/blog/');
+const b = dict.en.blog;
+const related = posts.filter((p) => p.slug !== post.slug).slice(0, 2);
+const date = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+}).format(new Date(`${post.date}T12:00:00Z`));
+const articleJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: post.titleEn,
+  author: { '@type': 'Person', name: 'Landon Kinsey' },
+  datePublished: post.date,
+  description: post.summary.en,
+  image: post.image,
+};
+---
+<Base
+  locale="en"
+  currentKey="blog"
+  title={`${post.titleEn} · NODNAL`}
+  description={post.summary.en}
+>
+  <script type="application/ld+json" set:html={JSON.stringify(articleJsonLd)} />
+  <div class="wrap narrow">
+    <p class="crumbs"><a href="/en/blog/">{b.backToBlog}</a></p>
+    <h1>{post.titleEn}</h1>
+    <p class="meta">
+      {b.byAuthor} · <time datetime={post.date}>{date}</time> · {post.minutes} {b.minutes}
+    </p>
+    <figure class="hero-fig">
+      <img src={post.image} alt={post.imageAlt} width="1200" height="800" fetchpriority="high" />
+    </figure>
+    <div class="prose" set:html={post.bodyEn} />
+    <section aria-label={b.relatedTitle}>
+      <h2>{b.relatedTitle}</h2>
+      <div class="grid">
+        {related.map((r) => <ArticleCard post={r} locale="en" />)}
+      </div>
+    </section>
+  </div>
+  <style>
+    .wrap { max-width: 72rem; margin-inline: auto; padding: 2rem 1.25rem 0; }
+    .narrow .prose, .narrow h1, .narrow .meta, .narrow .crumbs { max-width: 68ch; }
+    .crumbs { margin: 0 0 1rem; }
+    h1 { font-size: clamp(2rem, 4.5vw, 3rem); margin: 0 0 0.5rem; }
+    .meta { font-family: var(--font-ui); font-size: 0.95rem; color: var(--text-muted); margin: 0 0 1.5rem; }
+    .hero-fig { margin: 0 0 2rem; max-width: 56rem; }
+    .hero-fig img { width: 100%; height: auto; border-radius: var(--radius); display: block; }
+    .prose { font-size: 1.15rem; }
+    .prose h2 { font-size: 1.7rem; margin: 2.25rem 0 0.75rem; }
+    .prose p { margin: 0 0 1.1rem; }
+    .prose figure { margin: 1.75rem 0; }
+    .prose figure img { width: 100%; height: auto; border-radius: var(--radius-small); display: block; }
+    .prose figcaption { font-size: 0.95rem; color: var(--text-muted); margin-top: 0.4rem; }
+    .prose blockquote {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      border-radius: var(--radius-small);
+      padding: 1rem 1.25rem;
+      margin: 1.5rem 0;
+      font-style: italic;
+    }
+    section[aria-label] { margin-top: 3rem; }
+    section[aria-label] h2 { font-size: 1.6rem; }
+    .grid {
+      display: grid;
+      gap: 1.75rem;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+    }
+  </style>
+</Base>

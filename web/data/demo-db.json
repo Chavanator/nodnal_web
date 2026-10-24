@@ -1,0 +1,43 @@
+{
+  "seq": 3,
+  "registrations": [
+    {
+      "id": "reg_0002",
+      "eventId": "evt_cajas_dayhike",
+      "fullName": "Ana Prueba",
+      "email": "ana@example.com",
+      "phone": "+593 99 111 2222",
+      "participantCount": 1,
+      "customAnswers": {},
+      "termsAccepted": true,
+      "status": "pending_payment",
+      "paymentStatus": "not_started",
+      "paymentMethod": null,
+      "createdAt": "2026-10-23T23:33:16.348Z",
+      "updatedAt": "2026-10-23T23:33:16.348Z",
+      "approvedAt": null,
+      "approvedBy": null,
+      "locale": "es"
+    }
+  ],
+  "payments": [],
+  "emailJobs": [
+    {
+      "id": "mail_0001",
+      "registrationId": "",
+      "kind": "contact_received",
+      "status": "pending_provider",
+      "detail": "De: Ana Pérez <ana@example.com> — Eventos\nQuiero información sobre caminatas guiadas para mi grupo.",
+      "createdAt": "2026-10-21T21:48:12.632Z"
+    },
+    {
+      "id": "mail_0003",
+      "registrationId": "reg_0002",
+      "kind": "registration_received",
+      "status": "pending_provider",
+      "detail": "Proveedor de correo no configurado en el demo.",
+      "createdAt": "2026-10-23T23:33:16.348Z"
+    }
+  ],
+  "adminLog": []
+}

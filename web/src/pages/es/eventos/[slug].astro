@@ -1,0 +1,173 @@
+---
+import Base from '../../../layouts/Base.astro';
+import RegistrationModal from '../../../components/RegistrationModal.astro';
+import { dict } from '../../../i18n/dict';
+import { formatEventDate, publishedEvents } from '../../../lib/events';
+
+export function getStaticPaths() {
+  return publishedEvents().map((ev) => ({ params: { slug: ev.slug } }));
+}
+
+const { slug } = Astro.params;
+const event = publishedEvents().find((ev) => ev.slug === slug);
+if (!event) return Astro.redirect('/es/eventos/');
+const t = dict.es;
+const e = t.eventsPage;
+const txt = event.text.es;
+const eventJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Event',
+  name: txt.title,
+  description: txt.summary,
+  startDate: event.startAt,
+  endDate: event.endAt,
+  eventStatus: 'https://schema.org/EventScheduled',
+  location: { '@type': 'Place', name: txt.locationName, address: event.locationAddress },
+  offers: { '@type': 'Offer', price: event.priceAmount, priceCurrency: event.currency, availability: 'https://schema.org/InStock' },
+  image: event.flyer,
+};
+---
+<Base
+  locale="es"
+  currentKey="events"
+  title={`${txt.title} · NODNAL`}
+  description={txt.summary}
+>
+  <script type="application/ld+json" set:html={JSON.stringify(eventJsonLd)} />
+  <div class="wrap">
+    <p class="crumbs"><a href="/es/eventos/">{e.backToEvents}</a></p>
+    <div class="detail">
+      <figure>
+        <img src={event.flyer} alt={event.flyerAlt.es} width="900" height="1200" fetchpriority="high" />
+        {event.demo && <figcaption><span class="demo-badge">{e.demo}</span></figcaption>}
+      </figure>
+      <div>
+        <h1>{txt.title}</h1>
+        <p class="lede">{txt.summary}</p>
+        <dl class="facts">
+          <div><dt>{e.dateLabel}</dt><dd><time datetime={event.startAt}>{formatEventDate(event.startAt, event.timezone, 'es')}</time></dd></div>
+          <div><dt>{e.locationLabel}</dt><dd>{event.locationAddress}</dd></div>
+          <div><dt>{e.priceLabel}</dt><dd>{event.priceAmount > 0 ? `${event.priceAmount} ${event.currency}` : '—'}</dd></div>
+          <div>
+            <dt>{e.capacityLabel}</dt>
+            <dd data-availability data-slug={event.slug}>…</dd>
+          </div>
+        </dl>
+        <p class="approval-note">
+          {event.approvalMode === 'manual' ? e.approvalNoteManual : e.approvalNoteAuto}
+        </p>
+        <p>
+          <button type="button" class="btn-primary" data-register-btn data-event-slug={event.slug} data-event-title={txt.title}>
+            {e.register}
+          </button>
+        </p>
+      </div>
+    </div>
+
+    <div class="prose">
+      <h2>{e.detailsTitle}</h2>
+      <p>{txt.description}</p>
+      <h2>{e.requirementsTitle}</h2>
+      <ul>
+        {txt.requirements.map((r) => <li>{r}</li>)}
+      </ul>
+      <h2>{e.includesTitle}</h2>
+      <ul>
+        {txt.includes.map((item) => <li>{item}</li>)}
+      </ul>
+    </div>
+  </div>
+
+  <RegistrationModal locale="es" />
+
+  <script>
+    // Disponibilidad en vivo (el servidor es la fuente; el HTML trae el resto).
+    async function refreshAvailability() {
+      const slots = document.querySelectorAll('[data-availability]');
+      for (const slot of slots) {
+        const slug = slot.getAttribute('data-slug');
+        if (!slug) continue;
+        try {
+          const res = await fetch(`/api/availability?slug=${encodeURIComponent(slug)}`);
+          if (!res.ok) continue;
+          const data = await res.json();
+          const lang = document.documentElement.lang === 'es' ? 'es' : 'en';
+          if (data.seatsLeft === null) {
+            slot.textContent = lang === 'es' ? 'sin límite' : 'unlimited';
+          } else if (data.seatsLeft > 0) {
+            slot.textContent = `${data.seatsLeft} ${lang === 'es' ? 'plazas libres' : 'spots left'}`;
+          } else {
+            slot.textContent = lang === 'es' ? 'Completo' : 'Full';
+          }
+        } catch {
+          /* sin conexión: se conserva el marcador */
+        }
+      }
+    }
+    refreshAvailability();
+  </script>
+
+  <style>
+    .wrap { max-width: 72rem; margin-inline: auto; padding: 2rem 1.25rem 0; }
+    .crumbs { margin: 0 0 1rem; }
+    .detail {
+      display: grid;
+      gap: 2rem;
+      grid-template-columns: minmax(0, 26rem) 1fr;
+      align-items: start;
+    }
+    figure { margin: 0; }
+    figure img {
+      width: 100%;
+      height: auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      display: block;
+    }
+    figcaption { margin-top: 0.5rem; }
+    .demo-badge {
+      font-family: var(--font-ui);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      background: var(--surface-warm);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0.25rem 0.6rem;
+    }
+    h1 { font-size: clamp(2rem, 4vw, 2.9rem); margin: 0 0 0.5rem; }
+    .lede { font-size: 1.25rem; margin: 0 0 1.25rem; }
+    .facts { display: grid; gap: 0.7rem; margin: 0 0 1rem; }
+    .facts > div { display: grid; grid-template-columns: 7rem 1fr; gap: 1rem; }
+    .facts dt { font-family: var(--font-ui); font-weight: 700; font-size: 0.95rem; }
+    .facts dd { margin: 0; }
+    .approval-note {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      border-radius: var(--radius-small);
+      padding: 0.8rem 1rem;
+      max-width: 60ch;
+    }
+    .btn-primary {
+      font-family: var(--font-ui);
+      font-weight: 600;
+      font-size: 1.05rem;
+      background: var(--brand);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 0.75rem 1.6rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    [data-theme='dark'] .btn-primary { color: var(--on-brand); }
+    .btn-primary:active { transform: translateY(1px); }
+    .prose { max-width: 68ch; margin-top: 2.5rem; }
+    .prose h2 { font-size: 1.6rem; margin: 1.75rem 0 0.6rem; }
+    .prose ul { padding-left: 1.25rem; display: grid; gap: 0.35rem; }
+    @media (max-width: 767px) {
+      .detail { grid-template-columns: 1fr; }
+      .facts > div { grid-template-columns: 1fr; gap: 0.1rem; }
+    }
+  </style>
+</Base>

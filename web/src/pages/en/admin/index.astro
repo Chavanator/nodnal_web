@@ -1,0 +1,30 @@
+---
+import Base from '../../../layouts/Base.astro';
+import AdminPanel from '../../../components/AdminPanel.astro';
+import { dict } from '../../../i18n/dict';
+import { adminPasswordConfigured, verifySession, COOKIE_NAME } from '../../../lib/auth';
+
+export const prerender = false;
+
+const authed = verifySession(Astro.cookies.get(COOKIE_NAME)?.value);
+const loginFailed = Astro.url.searchParams.get('login') === 'failed';
+const filterEvent = Astro.url.searchParams.get('event') ?? '';
+const filterStatus = Astro.url.searchParams.get('status') ?? '';
+const t = dict.en;
+---
+<Base
+  locale="en"
+  currentKey="admin"
+  title={`${t.admin.title} · NODNAL`}
+  description="Registration review panel."
+  noindex
+>
+  <AdminPanel
+    locale="en"
+    authed={authed}
+    passwordConfigured={adminPasswordConfigured()}
+    loginFailed={loginFailed}
+    filterEvent={filterEvent}
+    filterStatus={filterStatus}
+  />
+</Base>

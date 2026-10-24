@@ -1,0 +1,29 @@
+---
+/* Raíz: redirige según preferencia guardada, si no idioma del navegador,
+ * fallback /en/ (CONTENT_AND_I18N, provisional sujeto a confirmación). */
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NODNAL</title>
+    <meta name="robots" content="noindex" />
+  </head>
+  <body>
+    <p><a href="/es/">Español</a> · <a href="/en/">English</a></p>
+    <script is:inline>
+      (function () {
+        var target = '/en/';
+        try {
+          var saved = localStorage.getItem('nodnal-locale');
+          if (saved === 'es' || saved === 'en') target = '/' + saved + '/';
+          else if ((navigator.language || '').toLowerCase().indexOf('es') === 0) target = '/es/';
+        } catch (e) {
+          if ((navigator.language || '').toLowerCase().indexOf('es') === 0) target = '/es/';
+        }
+        location.replace(target);
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,113 @@
+/* Relleno animado para botones con borde visible.
+   Se aplica a .btn-ghost / .cine-btn-ghost y a cualquier control marcado
+   con [data-fill] (toggles del header, view-toggle de eventos, etc.).
+   El relleno es un pseudo-elemento z-index:-1 con scaleX: queda por encima
+   del fondo del botón pero por debajo del texto, así que no hace falta
+   envolver los contenidos. */
+.btn-ghost,
+.cine-btn-ghost,
+[data-fill] {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition:
+    color 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.15s ease;
+}
+.btn-ghost::before,
+.cine-btn-ghost::before,
+[data-fill]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--brand);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cine-btn-ghost::before {
+  background: var(--warm-white);
+}
+.btn-ghost:hover::before,
+.btn-ghost:focus-visible::before,
+.cine-btn-ghost:hover::before,
+.cine-btn-ghost:focus-visible::before,
+[data-fill]:hover::before,
+[data-fill]:focus-visible::before {
+  transform: scaleX(1);
+}
+.btn-ghost:hover,
+.btn-ghost:focus-visible,
+[data-fill]:hover,
+[data-fill]:focus-visible {
+  color: var(--on-brand);
+  border-color: var(--brand);
+}
+.cine-btn-ghost:hover,
+.cine-btn-ghost:focus-visible {
+  color: var(--forest);
+  border-color: var(--warm-white);
+}
+.btn-ghost:active,
+.cine-btn-ghost:active,
+[data-fill]:active {
+  transform: translateY(1px) scale(0.97);
+}
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Elevación compartida de todos los .btn-primary (detalle de evento, dorso
+   de la tarjeta, modal de inscripción, paso Siguiente del contacto, coaching,
+   blog y admin). Cada página conserva sus colores/tamaños; aquí solo la
+   animación: hover con ligero bump + brillo morado y press suave al clicar. */
+.btn-primary {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.btn-primary:hover,
+.btn-primary:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -14px rgba(125, 42, 209, 0.85);
+}
+.btn-primary:active {
+  transform: translateY(1px) scale(0.98);
+}
+.btn-primary:disabled,
+.btn-primary:disabled:hover,
+.btn-primary:disabled:focus-visible {
+  transform: none;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-ghost,
+  .cine-btn-ghost,
+  [data-fill] {
+    transition: none;
+  }
+  .btn-ghost::before,
+  .cine-btn-ghost::before,
+  [data-fill]::before {
+    transition: none;
+  }
+  .btn-ghost:active,
+  .cine-btn-ghost:active,
+  [data-fill]:active {
+    transform: none;
+  }
+  .btn-primary {
+    transition: none;
+  }
+  .btn-primary:hover,
+  .btn-primary:focus-visible,
+  .btn-primary:active {
+    transform: none;
+    box-shadow: none;
+  }
+}

@@ -1,0 +1,173 @@
+/* NODNAL — Design tokens (Etapa 1).
+ * Paleta auditada del tema actual (TECHNICAL_SPEC §0 + DECISION_LOG D-007/D-008):
+ * morado primario #7d2ad1, durazno #efb0ab, turquesa SOLO detalles
+ * decorativos (contraste texto ~1.6:1, no apto para texto ni CTAs).
+ * Tipografías del sitio actual, auto-hospedadas con font-display: swap.
+ */
+
+/* Ojuju (titulares) — variable 400-800, se usa 600-700 */
+@font-face {
+  font-family: 'Ojuju';
+  src: url('../assets/fonts/ojuju-normal-400-800.woff2') format('woff2');
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+/* Josefin Slab (cuerpo) */
+@font-face {
+  font-family: 'Josefin Slab';
+  src: url('../assets/fonts/josefinslab-normal-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Josefin Slab';
+  src: url('../assets/fonts/josefinslab-normal-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Josefin Slab';
+  src: url('../assets/fonts/josefinslab-normal-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Josefin Slab';
+  src: url('../assets/fonts/josefinslab-italic-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+/* Archivo (botones, labels, navegación — mayúsculas) */
+@font-face {
+  font-family: 'Archivo';
+  src: url('../assets/fonts/archivo-normal-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('../assets/fonts/archivo-normal-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('../assets/fonts/archivo-normal-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('../assets/fonts/archivo-normal-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Marca */
+  --brand: #7d2ad1;
+  --brand-ink: #5b1ca3; /* texto morado sobre fondo claro (≈7:1) */
+  --accent-warm: #efb0ab; /* durazno: fondos suaves, nunca texto */
+  --accent-teal: #11eae6; /* SOLO decoración puntual (D-008) */
+  /* Identidad cinematográfica del home (rediseño de inicio).
+   * Verde bosque/salia/piedra/blanco cálido son protagonistas;
+   * --lavender solo como acento decorativo (nunca texto pequeño). */
+  --forest: #26332e;
+  --sage: #899787;
+  --sage-ink: #4d5b4a; /* derivado de --sage, texto AA sobre blanco cálido */
+  --warm-white: #f8f5ef;
+  --stone: #d8d3c9;
+  --lavender: #b58aff;
+  /* Superficies claras — alineadas a la identidad del home (D-031):
+   * blanco cálido, verde bosque para texto, piedra para líneas. */
+  --bg: #f8f5ef;
+  --surface: #fffdf7;
+  --surface-warm: #e6e1d5;
+  --text: #26332e;
+  --text-muted: #4d5b4a;
+  --line: #d8d3c9;
+  --on-brand: #ffffff;
+  /* Tipografía */
+  --font-display: 'Ojuju', 'Trebuchet MS', Verdana, sans-serif;
+  --font-body: 'Josefin Slab', Georgia, 'Times New Roman', serif;
+  --font-ui: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  /* Forma: un solo radio base (Taste shape lock: 12-16px cards) */
+  --radius: 14px;
+  --radius-small: 8px;
+  --z-nav: 30;
+  --z-modal: 60;
+}
+
+[data-theme='dark'] {
+  --bg: #1a211d;
+  --surface: #242e28;
+  --surface-warm: #35473f;
+  --text: #f8f5ef;
+  --text-muted: #a3b09c;
+  --line: #38453d;
+  --brand: #9a5cf0; /* primario aclarado para AA sobre fondo oscuro */
+  --brand-ink: #c9a6f7; /* enlaces/texto morado sobre oscuro */
+  --on-brand: #1a211d;
+  --sage-ink: #a3b09c; /* salvia aclarada para AA sobre verde bosque */
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+a {
+  color: var(--brand-ink);
+}
+
+/* Foco visible en todo el sitio (NFR-005) */
+:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

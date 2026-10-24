@@ -1,0 +1,18 @@
+---
+import Base from '../layouts/Base.astro';
+import { dict } from '../i18n/dict';
+import { getLocaleFromPath } from '../i18n/routing';
+
+const locale = getLocaleFromPath(Astro.url.pathname);
+const t = dict[locale];
+---
+<Base locale={locale} title={t.notFound.title} description={t.notFound.body} noindex>
+  <div class="wrap">
+    <h1>{t.notFound.title}</h1>
+    <p>{t.notFound.body}</p>
+    <p><a href={locale === 'es' ? '/es/' : '/en/'}>{t.notFound.back}</a></p>
+  </div>
+  <style>
+    .wrap { max-width: 72rem; margin-inline: auto; padding: 3rem 1.25rem; }
+  </style>
+</Base>

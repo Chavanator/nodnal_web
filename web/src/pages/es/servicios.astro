@@ -1,0 +1,108 @@
+---
+import Base from '../../layouts/Base.astro';
+import ServiceIcon from '../../components/ServiceIcon.astro';
+
+// Contenido provisional derivado de la auditoría; inventario definitivo
+// pendiente del cliente (OPEN_QUESTIONS).
+const services = [
+  {
+    name: 'Caminatas y travesías guiadas',
+    href: '/es/eventos/',
+    text: 'Salidas de un día y de varios días con guía certificado, en Ecuador y Montana. Grupos pequeños, itinerarios claros y registro en línea.',
+    icon: 'hike',
+  },
+  {
+    name: 'Eventos de yoga',
+    href: '/es/eventos/',
+    text: 'Práctica al aire libre para todos los niveles: respiración, posturas suaves y comunidad.',
+    icon: 'yoga',
+  },
+  {
+    name: 'Coaching individual',
+    href: '/es/servicios/coaching-individual/',
+    text: 'Acompañamiento 1 a 1 trauma-informado para transiciones, estancamiento y despliegue personal. Consulta inicial gratuita.',
+    icon: 'coaching',
+  },
+] as const;
+---
+<Base
+  locale="es"
+  currentKey="services"
+  title="Servicios · NODNAL"
+  description="Caminatas guiadas, eventos de yoga y coaching individual en Ecuador y Montana."
+>
+  <div class="wrap">
+    <h1 data-reveal>Servicios</h1>
+    <p class="intro" data-reveal style="--reveal-delay: .1s">
+      Propuestas formales de artes de sanación: naturaleza, yoga y coaching.
+      Cada servicio indica su lugar, precio y forma de participar.
+    </p>
+    <ul class="service-list">
+      {
+        services.map((s, i) => (
+          <li data-reveal style={`--reveal-delay: ${i * 0.14}s`}>
+            <a href={s.href}>
+              <span class="service-text">
+                <span class="service-name">
+                  {s.name}
+                  <span class="service-arrow" aria-hidden="true">→</span>
+                </span>
+                <span class="service-note">{s.text}</span>
+              </span>
+              <ServiceIcon name={s.icon} />
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+  <style>
+    .wrap { max-width: 72rem; margin-inline: auto; padding: 2.5rem 1.25rem 0; }
+    h1 { font-size: clamp(2.2rem, 4.5vw, 3.2rem); margin: 0 0 0.5rem; }
+    .intro { max-width: 60ch; margin: 0 0 1.5rem; font-size: 1.2rem; }
+    .service-list { list-style: none; margin: 0; padding: 0; }
+    .service-list li {
+      border-top: 1px solid var(--line);
+      transition: border-color 0.3s ease;
+    }
+    .service-list li:last-child { border-bottom: 1px solid var(--line); }
+    /* Hover: borde iluminado + leve desplazamiento y tinte de fondo. */
+    .service-list li:has(a:hover) { border-color: var(--brand); }
+    .service-list a {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 1.25rem 0.75rem;
+      text-decoration: none;
+      color: var(--text);
+      transition:
+        transform 0.3s ease,
+        background-color 0.3s ease;
+    }
+    .service-list a:hover {
+      transform: translateX(8px);
+      background: color-mix(in srgb, var(--surface-warm) 45%, transparent);
+    }
+    .service-text { display: grid; gap: 0.3rem; }
+    .service-name { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; }
+    .service-arrow {
+      display: inline-block;
+      margin-left: 0.5rem;
+      color: var(--brand);
+      opacity: 0.65;
+      transition:
+        transform 0.3s ease,
+        opacity 0.3s ease;
+    }
+    .service-list a:hover .service-arrow {
+      transform: translateX(6px);
+      opacity: 1;
+    }
+    .service-note { color: var(--text-muted); max-width: 70ch; }
+    @media (prefers-reduced-motion: reduce) {
+      .service-list a:hover { transform: none; }
+      .service-list a:hover .service-arrow { transform: none; }
+    }
+  </style>
+</Base>

@@ -1,0 +1,153 @@
+---
+import Base from '../../layouts/Base.astro';
+
+// Fusiona About + Bio del sitio actual (duplicadas). Texto original.
+// Photo: Landon and Robin (tools/Landon+and+Robin.jpg → public/img).
+---
+<Base
+  locale="en"
+  currentKey="about"
+  title="About NODNAL"
+  description="NODNAL is a resource for self-transformation: healing arts offerings and a personal blog. Meet Landon Kinsey."
+>
+  <div class="wrap narrow">
+    <h1 data-reveal>About NODNAL</h1>
+    <p class="lede" data-reveal style="--reveal-delay: .1s">
+      This website is a resource for self-transformation and contains two websites within
+      one: formal offerings of the healing arts and a personal blog.
+    </p>
+    <p data-reveal style="--reveal-delay: .2s">
+      Professional offerings include trauma-safe 1:1 coaching, yoga events and guided trips
+      into the wilderness.
+    </p>
+    <h2>Landon's Bio</h2>
+    <div class="bio-grid" data-reveal>
+      <div class="bio-text">
+        <p>
+          In Landon's mid-20's a rather unexpected spiritual awakening came, awakening him from
+          the process of identifying and defining himself as a separate thing, and awakening him
+          to his unique way of being in the world. In the months and years that followed this
+          initiation into his True Nature, Landon invariably found himself spending long
+          durations of time, periods alone, in nature. Later on he began exploring the world of
+          contemplative practices and rites of passage.
+        </p>
+        <p>
+          Landon is a regular practitioner of seated meditation and finds the extensive yoga
+          tradition to be the most wholesome form of self-care and illness prevention. He is a
+          veteran, a mountain and rock climber, speaks Spanish, writes regularly and plays a
+          traditional flute. He resides in Ecuador and frequents North America.
+        </p>
+      </div>
+      <figure class="bio-photo">
+        <img
+          src="/img/landon-robin.jpg"
+          alt="Landon Kinsey sitting outdoors with his dog Robin"
+          width="1400"
+          height="1101"
+          loading="lazy"
+          decoding="async"
+        />
+        <figcaption>Landon and Robin</figcaption>
+      </figure>
+    </div>
+    <h2>Certified</h2>
+    <ul class="certs">
+      <li data-reveal style="--reveal-delay: 0s">
+        <!-- Seal / accreditation -->
+        <svg width="20" height="20" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="19" r="11" /><path d="M17 28 L14 42 L24 37 L34 42 L31 28" /><path d="M19 19 l4 4 l7 -8" /></svg>
+        <span>Trauma-Safe Coach</span>
+      </li>
+      <li data-reveal style="--reveal-delay: .12s">
+        <!-- Lotus -->
+        <svg width="20" height="20" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M24 38 c-10 0 -17 -6 -17 -12 c5 -2 11 0 14 5" /><path d="M24 38 c10 0 17 -6 17 -12 c-5 -2 -11 0 -14 5" /><path d="M24 38 c-5 -5 -6 -12 0 -20 c6 8 5 15 0 20 Z" /></svg>
+        <span>Tantra Yoga (300 hours) and Pranayama (50 hours)</span>
+      </li>
+      <li data-reveal style="--reveal-delay: .24s">
+        <!-- Mountain -->
+        <svg width="20" height="20" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 38 L18 14 L27 28 L33 20 L44 38 Z" /></svg>
+        <span>Wilderness Backpacking Guide</span>
+      </li>
+    </ul>
+    <p class="cta-row" data-reveal style="--reveal-delay: .3s">
+      <a class="btn-primary" href="/en/events/">Explore events</a>
+    </p>
+  </div>
+  <style>
+    .wrap { max-width: 72rem; margin-inline: auto; padding: 2.5rem 1.25rem 0; }
+    .narrow > * { max-width: 68ch; }
+    .narrow > .bio-grid { max-width: 54rem; }
+    h1 { font-size: clamp(2.2rem, 4.5vw, 3.2rem); margin: 0 0 0.5rem; }
+    h2 { font-size: 1.6rem; margin: 2rem 0 0.6rem; }
+    .lede { font-size: 1.25rem; }
+    /* Bio block: text + photo of Landon and Robin. */
+    .bio-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 0.9fr;
+      gap: 2rem;
+      align-items: start;
+      margin-top: 1rem;
+    }
+    .bio-text { display: grid; gap: 1rem; max-width: 68ch; }
+    .bio-text p { margin: 0; }
+    .bio-photo { margin: 0; }
+    .bio-photo img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .bio-photo figcaption {
+      margin-top: 0.5rem;
+      font-family: var(--font-ui);
+      font-size: 0.8rem;
+      letter-spacing: 0.03em;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    /* Certifications: vector badge + staggered cascade entrance. */
+    .certs {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.7rem;
+    }
+    .certs li {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+    }
+    .certs li svg {
+      flex-shrink: 0;
+      color: var(--brand);
+    }
+    /* CTA: subtle lift with expanded shadow. */
+    .btn-primary {
+      display: inline-block;
+      font-family: var(--font-ui);
+      font-weight: 600;
+      background: var(--brand);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 0.7rem 1.5rem;
+      white-space: nowrap;
+      transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 26px -12px rgba(125, 42, 209, 0.65);
+    }
+    [data-theme='dark'] .btn-primary { color: var(--on-brand); }
+    @media (max-width: 767px) {
+      .bio-grid { grid-template-columns: 1fr; }
+      .bio-photo { max-width: 20rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .btn-primary:hover { transform: none; box-shadow: none; }
+    }
+  </style>
+</Base>

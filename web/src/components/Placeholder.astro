@@ -1,0 +1,29 @@
+---
+import Base from '../layouts/Base.astro';
+import { dict, type Locale } from '../i18n/dict';
+
+interface Props {
+  locale: Locale;
+  currentKey: string;
+  title: string;
+}
+
+const { locale, currentKey, title } = Astro.props;
+const t = dict[locale];
+---
+<Base locale={locale} currentKey={currentKey} title={title} description={t.placeholder.body} noindex>
+  <div class="wrap">
+    <h1>{title}</h1>
+    <p class="note"><strong>{t.placeholder.title}.</strong> {t.placeholder.body}</p>
+  </div>
+  <style>
+    .wrap { max-width: 72rem; margin-inline: auto; padding: 3rem 1.25rem; }
+    .note {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      padding: 1rem 1.25rem;
+      border-radius: var(--radius-small);
+      max-width: 60ch;
+    }
+  </style>
+</Base>

@@ -1,0 +1,85 @@
+---
+import Base from '../../../layouts/Base.astro';
+
+// Traducción preparada por el desarrollador a partir del original en inglés.
+// Pendiente de revisión por el cliente antes de producción (CONTENT_AND_I18N).
+---
+<Base
+  locale="es"
+  currentKey="services"
+  title="Coaching individual · NODNAL"
+  description="Coaching personal trauma-informado, presencial y por videollamada. Consulta gratuita de 20-30 minutos."
+>
+  <div class="wrap narrow">
+    <p class="crumbs"><a href="/es/servicios/">Servicios</a></p>
+    <h1>Coaching personal</h1>
+    <p class="lede">Hola… y bienvenido a la página de coaching personal, donde encontrarás información sobre el acompañamiento que ofrezco.</p>
+    <p>
+      Coaching es un término muy amplio: en esencia, el rol del coach es apoyar en las áreas
+      que nos ayudan a ir más allá de nuestras limitaciones personales. ¿Recuerdas alguna vez
+      en tu vida en que un coach impulsó tu crecimiento? Lo que ofrezco es apoyo
+      trauma-informado para expandirte en la vida práctica y profundizar espiritualmente. La
+      premisa de mi trabajo parte de la comprensión básica y esencial de que nuestra
+      naturaleza innata nos guía hacia la totalidad. Mediante intervenciones precisas,
+      momento a momento, y el contenedor creado en sesión, pueden cambiar patrones
+      arraigados a nivel fisiológico.
+    </p>
+    <h2>Las sesiones apoyan a quienes atraviesan</h2>
+    <ul>
+      <li>estancamiento crónico o alienación</li>
+      <li>transiciones vitales o periodos de cambio rápido</li>
+      <li>impulsos adictivos intensos (no trabajo con abuso activo de sustancias)</li>
+      <li>desintegración/integración en relaciones</li>
+      <li>despliegue espiritual profundo y mayor bienestar</li>
+    </ul>
+    <p>
+      Mi objetivo al trabajar juntos es que experimentes cambios equilibrados y duraderos.
+      Juntos construimos un nido de apoyo que permite que expresiones (que van mucho más allá
+      del concepto o la personalidad) emerjan para ser vividas más plenamente.
+    </p>
+    <h2>Detalles prácticos</h2>
+    <ul>
+      <li>Consulta gratuita de 20-30 minutos.</li>
+      <li>Sesiones estándar de 60 minutos.</li>
+      <li>Escala móvil $60-90 por hora; Latinoamérica $40-60 por hora.</li>
+      <li>Presencial y por videollamada.</li>
+    </ul>
+    <p>
+      Puede que yo sea o no un instrumento en tu proceso de transformación y sanación. Lo que
+      sí puedo decir es que trabajarás con alguien que comprende estos procesos no solo a
+      nivel intelectual, sino vivido. Si hay algo que pueda hacer para apoyar tu crecimiento,
+      incluso derivarte con un colega más adecuado, no dudes en contactarme. Será un honor. — Landon
+    </p>
+    <p>
+      <a class="btn-primary" href="/es/contacto/">Solicitar una consulta</a>
+    </p>
+    <h2>Formación</h2>
+    <p>
+      OI Coaching es una interacción conversacional profundamente sintonizada que trabaja
+      directamente con las tendencias de crecimiento de la neurobiología del cliente,
+      incluyendo el marco ISOMA de Organic Intelligence: Imagen, Sensación, Orientación,
+      Significado y Afecto.
+    </p>
+  </div>
+  <style>
+    .wrap { max-width: 72rem; margin-inline: auto; padding: 2rem 1.25rem 0; }
+    .narrow > * { max-width: 68ch; }
+    .crumbs { margin: 0 0 1rem; }
+    h1 { font-size: clamp(2rem, 4.5vw, 3rem); margin: 0 0 0.5rem; }
+    h2 { font-size: 1.6rem; margin: 2rem 0 0.6rem; }
+    .lede { font-size: 1.25rem; }
+    ul { padding-left: 1.25rem; display: grid; gap: 0.35rem; }
+    .btn-primary {
+      display: inline-block;
+      font-family: var(--font-ui);
+      font-weight: 600;
+      background: var(--brand);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 0.7rem 1.5rem;
+      white-space: nowrap;
+    }
+    [data-theme='dark'] .btn-primary { color: var(--on-brand); }
+  </style>
+</Base>

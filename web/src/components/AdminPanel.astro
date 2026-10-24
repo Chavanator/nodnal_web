@@ -1,0 +1,362 @@
+---
+import { listRegistrations } from '../lib/admin.js';
+import { events } from '../lib/events.js';
+import { loadDb } from '../lib/store.js';
+import { dict, type Locale } from '../i18n/dict';
+
+// Panel modo Operate: denso, escaneable, funcional. Sin estética de
+// marketing (Taste §13) y sin comandos inventados de Impeccable.
+interface Props {
+  locale: Locale;
+  authed: boolean;
+  passwordConfigured: boolean;
+  loginFailed: boolean;
+  filterEvent: string;
+  filterStatus: string;
+}
+
+const { locale, authed, passwordConfigured, loginFailed, filterEvent, filterStatus } = Astro.props;
+const a = dict[locale].admin;
+const statuses = [
+  'pending_approval',
+  'pending_payment',
+  'pending_payment_verification',
+  'confirmed',
+  'rejected',
+  'cancelled',
+  'waitlisted',
+];
+
+let rows: ReturnType<typeof listRegistrations> = [];
+let mailByReg = new Map<string, number>();
+let payByReg = new Map<string, { provider: string; amount: number; currency: string; status: string; verifiedBy: string | null; verifiedAt: string | null; providerReference: string | null }>();
+let recentLog: { at: string; action: string; registrationId: string | null; detail: string }[] = [];
+let contactMessages: { at: string; detail: string }[] = [];
+if (authed) {
+  rows = listRegistrations(filterEvent || null, filterStatus || null);
+  const db = loadDb();
+  for (const m of db.emailJobs) {
+    if (m.status === 'pending_provider') mailByReg.set(m.registrationId, (mailByReg.get(m.registrationId) ?? 0) + 1);
+    if (m.kind === 'contact_received') contactMessages.push({ at: m.createdAt, detail: m.detail });
+  }
+  for (const p of db.payments) payByReg.set(p.registrationId, p);
+  recentLog = db.adminLog.slice(-15).reverse();
+}
+const eventTitle = (id: string) => {
+  const ev = events.find((e) => e.id === id);
+  return ev ? ev.text[locale].title : id;
+};
+const basePath = locale === 'es' ? '/es/admin/' : '/en/admin/';
+const qs = (e: string, s: string) => `${basePath}?event=${encodeURIComponent(e)}&status=${encodeURIComponent(s)}`;
+---
+
+{
+  !authed ? (
+    <div class="wrap narrow">
+      <h1>{a.loginTitle}</h1>
+      {!passwordConfigured && (
+        <p class="warn" role="alert">{a.noPassword}</p>
+      )}
+      {loginFailed && (
+        <p class="warn" role="alert">{a.loginError}</p>
+      )}
+      <form method="post" action="/api/admin/login">
+        <div class="field">
+          <label for="admin-pass">{a.password}</label>
+          <input id="admin-pass" name="password" type="password" autocomplete="current-password" required />
+        </div>
+        <p><button type="submit" class="btn-primary">{a.login}</button></p>
+      </form>
+    </div>
+  ) : (
+    <div class="wrap wide">
+      <div class="admin-head">
+        <h1>{a.title}</h1>
+        <form method="post" action="/api/admin/logout" data-logout>
+          <button type="submit" class="btn-ghost">{a.logout}</button>
+        </form>
+      </div>
+      <p class="note">{a.demoNote}</p>
+      <form method="get" action={basePath} class="filters">
+        <label>{a.allEvents}
+          <select name="event" onchange="this.form.submit()">
+            <option value="">{a.allEvents}</option>
+            {events.map((ev) => (
+              <option value={ev.id} selected={filterEvent === ev.id}>{ev.text[locale].title}</option>
+            ))}
+          </select>
+        </label>
+        <label>{a.allStatuses}
+          <select name="status" onchange="this.form.submit()">
+            <option value="">{a.allStatuses}</option>
+            {statuses.map((s) => (
+              <option value={s} selected={filterStatus === s}>{s}</option>
+            ))}
+          </select>
+        </label>
+        <noscript><button type="submit" class="btn-ghost">{a.filter}</button></noscript>
+        <a class="btn-ghost" href={`/api/admin/export${filterEvent ? `?event=${encodeURIComponent(filterEvent)}` : ''}`}>{a.export}</a>
+      </form>
+
+      {rows.length === 0 ? (
+        <p>{a.empty}</p>
+      ) : (
+        <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">{a.created}</th>
+              <th scope="col">ID</th>
+              <th scope="col">{a.name}</th>
+              <th scope="col">{a.contact}</th>
+              <th scope="col">{a.count}</th>
+              <th scope="col">{a.status}</th>
+              <th scope="col">{a.payment}</th>
+              <th scope="col">{a.actions}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const pay = payByReg.get(r.id);
+              const mails = mailByReg.get(r.id) ?? 0;
+              return (
+                <tr data-reg-row={r.id}>
+                  <td>{r.createdAt.slice(0, 16).replace('T', ' ')}</td>
+                  <td><code>{r.id}</code><br /><small>{eventTitle(r.eventId)}</small></td>
+                  <td>{r.fullName}</td>
+                  <td>{r.email}{r.phone ? <br /> : null}{r.phone ?? ''}</td>
+                  <td>{r.participantCount}</td>
+                  <td><span class="badge">{r.status}</span></td>
+                  <td>
+                    {pay ? `${pay.provider} ${pay.amount} ${pay.currency} (${pay.status})` : r.paymentStatus}
+                    {pay?.verifiedBy && <br />}
+                    {pay?.verifiedBy && <small>{a.verifiedBy}: {pay.verifiedBy} {pay.verifiedAt?.slice(0, 16).replace('T', ' ')}</small>}
+                    {pay?.providerReference && <br />}
+                    {pay?.providerReference && <small>ref: {pay.providerReference}</small>}
+                    {mails > 0 && <br />}
+                    {mails > 0 && <small>{a.mailPending}</small>}
+                  </td>
+                  <td>
+                    <div class="acts">
+                      {r.status === 'pending_approval' && (
+                        <>
+                          <button type="button" class="mini" data-admin-action="approve" data-reg={r.id}>{a.approve}</button>
+                          <button type="button" class="mini danger" data-admin-action="reject" data-reg={r.id}>{a.reject}</button>
+                        </>
+                      )}
+                      {(r.status === 'pending_payment_verification' || r.status === 'pending_payment') && pay && (
+                        <button type="button" class="mini" data-admin-action="verifyPayment" data-reg={r.id}>{a.verifyPayment}</button>
+                      )}
+                      {!['rejected', 'cancelled'].includes(r.status) && (
+                        <button type="button" class="mini danger" data-admin-action="cancel" data-reg={r.id}>{a.cancel}</button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        </div>
+      )}
+
+      {recentLog.length > 0 && (
+        <section aria-label={a.recentLog}>
+          <h2>{a.recentLog}</h2>
+          <ul class="log">
+            {recentLog.map((l) => (
+              <li><code>{l.at.slice(0, 16).replace('T', ' ')}</code> {l.action} {l.registrationId} — {l.detail}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {contactMessages.length > 0 && (
+        <section aria-label={a.contactMessages}>
+          <h2>{a.contactMessages}</h2>
+          <ul class="log">
+            {contactMessages.slice(-10).reverse().map((m) => (
+              <li><code>{m.at.slice(0, 16).replace('T', ' ')}</code> — {m.detail}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+      <p class="msg" data-admin-msg role="status" hidden></p>
+    </div>
+  )
+}
+
+<script>
+  // Acciones del panel: POST JSON + recarga (el servidor revalida todo).
+  document.addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('[data-admin-action]');
+    if (!btn) return;
+    const action = btn.getAttribute('data-admin-action');
+    const id = btn.getAttribute('data-reg');
+    if (!action || !id) return;
+    if (action === 'reject' || action === 'cancel') {
+      const msg =
+        document.documentElement.lang === 'es'
+          ? `Confirmar ${action} para ${id}?`
+          : `Confirm ${action} for ${id}?`;
+      if (!window.confirm(msg)) return;
+    }
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/admin/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registrationId: id, action }),
+      });
+      if (!res.ok) throw new Error('action');
+      location.reload();
+    } catch {
+      const box = document.querySelector('[data-admin-msg]');
+      if (box) {
+        box.hidden = false;
+        box.textContent =
+          document.documentElement.lang === 'es'
+            ? 'No se pudo aplicar la acción.'
+            : 'Could not apply the action.';
+      }
+      btn.disabled = false;
+    }
+  });
+  const logoutForm = document.querySelector('[data-logout]');
+  if (logoutForm) {
+    logoutForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      await fetch('/api/admin/logout', { method: 'POST' });
+      location.reload();
+    });
+  }
+</script>
+
+<style>
+  .wrap { margin-inline: auto; padding: 2.5rem 1.25rem 0; }
+  .narrow { max-width: 32rem; }
+  .wide { max-width: 80rem; }
+  .admin-head { display: flex; align-items: center; gap: 1rem; justify-content: space-between; }
+  h1 { font-size: clamp(1.8rem, 3.5vw, 2.5rem); margin: 0; }
+  h2 { font-size: 1.3rem; margin: 2rem 0 0.6rem; }
+  .note, .warn {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--radius-small);
+    padding: 0.7rem 1rem;
+    max-width: 70ch;
+  }
+  .warn { border-color: #a41212; }
+  .field { display: grid; gap: 0.35rem; margin-bottom: 1rem; max-width: 24rem; }
+  .field label { font-family: var(--font-ui); font-weight: 600; font-size: 0.95rem; }
+  .field input, .filters select {
+    font: inherit;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-small);
+    padding: 0.55rem 0.7rem;
+  }
+  .btn-primary {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 0.6rem 1.4rem;
+    cursor: pointer;
+  }
+  [data-theme='dark'] .btn-primary { color: var(--on-brand); }
+  .btn-ghost {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--brand-ink);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.45rem 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .filters { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin: 1.5rem 0; }
+  .filters label { display: grid; gap: 0.25rem; font-family: var(--font-ui); font-size: 0.85rem; font-weight: 600; }
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.98rem; }
+  th, td { text-align: left; padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--font-ui); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  .badge {
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: var(--surface-warm);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+    white-space: nowrap;
+  }
+  .acts { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .mini {
+    font-family: var(--font-ui);
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid var(--brand);
+    background: transparent;
+    color: var(--brand-ink);
+    border-radius: 999px;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      transform 0.15s ease,
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      color 0.2s ease;
+  }
+  .mini:hover,
+  .mini:focus-visible {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+  .mini:active {
+    transform: translateY(1px) scale(0.97);
+  }
+  .mini.danger { border-color: #a41212; color: #a41212; }
+  [data-theme='dark'] .mini.danger { color: #ff9d9d; border-color: #ff9d9d; }
+  .mini.danger:hover,
+  .mini.danger:focus-visible {
+    background: #a41212;
+    border-color: #a41212;
+    color: #fff;
+  }
+  [data-theme='dark'] .mini:hover,
+  [data-theme='dark'] .mini:focus-visible {
+    color: var(--on-brand);
+  }
+  [data-theme='dark'] .mini.danger:hover,
+  [data-theme='dark'] .mini.danger:focus-visible {
+    background: #ff9d9d;
+    border-color: #ff9d9d;
+    color: #3b0d0d;
+  }
+  .mini:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    transform: none;
+  }
+  .log { font-size: 0.92rem; display: grid; gap: 0.3rem; padding-left: 1.1rem; }
+  .msg { font-weight: 600; }
+  @media (prefers-reduced-motion: reduce) {
+    .mini {
+      transition: none;
+    }
+    .mini:hover,
+    .mini:focus-visible,
+    .mini:active {
+      transform: none;
+    }
+  }
+</style>

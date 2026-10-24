@@ -1,0 +1,86 @@
+---
+import Base from '../../../layouts/Base.astro';
+
+// Contenido original del sitio actual (página Coaching, 604 palabras).
+// Precios y condiciones pendientes de confirmación (OPEN_QUESTIONS).
+---
+<Base
+  locale="en"
+  currentKey="services"
+  title="One-to-one coaching · NODNAL"
+  description="Trauma-informed personal coaching, in person and over video call. Free 20-30 minute consult."
+>
+  <div class="wrap narrow">
+    <p class="crumbs"><a href="/en/services/">Services</a></p>
+    <h1>Personal Coaching</h1>
+    <p class="lede">Hello! …and welcome to the personal coaching page where you will find information about the coaching I offer.</p>
+    <p>
+      Coaching is a very broad term, where fundamentally the role of a coach is to provide
+      support in areas that help us move beyond personal limitations. Can you recall a time
+      in your life where you had a coach who encouraged your growth? What I offer is
+      trauma-safe support to expand both practically in life and deepen spiritually. The
+      premise of my work comes from the basic, essential understanding that our innate
+      nature will guide us to wholeness. Through moment-based, precise interventions and
+      the container created in session, patterns rooted on the physiological level can change.
+    </p>
+    <h2>Session-work supports those undergoing</h2>
+    <ul>
+      <li>chronic stuckness or alienation</li>
+      <li>life transitions or periods of rapid change</li>
+      <li>intensity drawn addictive impulses (I do not work with active substance abuse)</li>
+      <li>dis-integration/integration in relationships</li>
+      <li>deeper, spiritual unfolding and greater well-being</li>
+    </ul>
+    <p>
+      My aim in working together is for you to experience balanced, lasting changes. Together
+      we build a nest of support that allows expressions (that go far beyond concept or
+      personality) to come forward to be experienced more fully. These key moments are subtle
+      and when highlighted and held in the right type of environment often bring a deeper
+      sense of equanimity for people and a healthier world view.
+    </p>
+    <h2>Practical details</h2>
+    <ul>
+      <li>Free 20-30 minute consult.</li>
+      <li>Standard sessions run 60 minutes.</li>
+      <li>Sliding scale $60-90 per hour; Latin America $40-60 per hour.</li>
+      <li>In person and over video call.</li>
+    </ul>
+    <p>
+      I may or may not be instrumental in your process of transformation and healing. What I
+      can say is that you will work with someone who not only understands these processes on
+      an intellectual level, but on a lived one. If there is anything I can do to support
+      your growth, including linking you with a colleague who may be a better fit, please do
+      not hesitate to contact me. It will be my honor. — Landon
+    </p>
+    <p>
+      <a class="btn-primary" href="/en/contact/">Request a consult</a>
+    </p>
+    <h2>Training</h2>
+    <p>
+      OI Coaching is a deeply attuned conversational interaction that works directly with the
+      growth trends of a client's neurobiology, including Organic Intelligence's ISOMA
+      framework: Image, Sensation, Orientation, Meaning and Affect.
+    </p>
+  </div>
+  <style>
+    .wrap { max-width: 72rem; margin-inline: auto; padding: 2rem 1.25rem 0; }
+    .narrow > * { max-width: 68ch; }
+    .crumbs { margin: 0 0 1rem; }
+    h1 { font-size: clamp(2rem, 4.5vw, 3rem); margin: 0 0 0.5rem; }
+    h2 { font-size: 1.6rem; margin: 2rem 0 0.6rem; }
+    .lede { font-size: 1.25rem; }
+    ul { padding-left: 1.25rem; display: grid; gap: 0.35rem; }
+    .btn-primary {
+      display: inline-block;
+      font-family: var(--font-ui);
+      font-weight: 600;
+      background: var(--brand);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 0.7rem 1.5rem;
+      white-space: nowrap;
+    }
+    [data-theme='dark'] .btn-primary { color: var(--on-brand); }
+  </style>
+</Base>

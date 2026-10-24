@@ -1,0 +1,458 @@
+---
+import { dict, type Locale } from '../i18n/dict';
+
+// Formulario de contacto storytelling (patrón Kinik Labs): un campo por
+// tarjeta dentro de un box centrado, con barra de progreso, contador
+// "Paso X de N", revisión final y envío al mismo /api/contact.
+// Sin JS se muestran todos los campos apilados (sin navegación).
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const c = dict[locale].contact;
+const email = dict[locale].footer.email;
+const stepCount = 5;
+const counterInitial = c.step.replace('{a}', '1').replace('{b}', String(stepCount));
+---
+
+<div class="wrap narrow">
+  <h1>{c.title}</h1>
+  <p class="intro">{c.intro}</p>
+  <p class="email-line">{c.emailLine} <a href={`mailto:${email}`}>{email}</a></p>
+  <p class="story-hint">{c.storyHint}</p>
+  <noscript>
+    <p class="nojs-note">{c.nojsHint}</p>
+  </noscript>
+
+  <form data-story-contact novalidate>
+    <div class="story" data-story-box>
+      <div class="story-progress" aria-hidden="true">
+        <div class="story-bar" data-story-bar></div>
+      </div>
+      <p class="story-counter" data-story-counter aria-live="polite">{counterInitial}</p>
+
+      <div class="story-slide is-active" data-slide data-key="name" data-type="text" data-required="1">
+        <label class="story-q" for="ct-name">{c.qName} *</label>
+        <input id="ct-name" name="name" type="text" autocomplete="name" required aria-required="true" />
+        <p class="field-error" data-err="name"></p>
+      </div>
+
+      <div class="story-slide" data-slide data-key="email" data-type="email" data-required="1">
+        <label class="story-q" for="ct-email">{c.qEmail} *</label>
+        <input id="ct-email" name="email" type="email" autocomplete="email" required aria-required="true" />
+        <p class="field-error" data-err="email"></p>
+      </div>
+
+      <div class="story-slide" data-slide data-key="subject" data-type="select">
+        <label class="story-q" for="ct-subject">{c.qSubject}</label>
+        <select id="ct-subject" name="subject">
+          <option value="">{c.subject}</option>
+          {c.subjectOptions.map((opt) => <option value={opt}>{opt}</option>)}
+        </select>
+        <p class="field-error" data-err="subject"></p>
+      </div>
+
+      <div class="story-slide" data-slide data-key="message" data-type="textarea" data-required="1">
+        <label class="story-q" for="ct-message">{c.qMessage} *</label>
+        <textarea id="ct-message" name="message" rows="5" maxlength="2000" required aria-required="true"></textarea>
+        <p class="field-error" data-err="message"></p>
+      </div>
+
+      <div class="story-slide" data-slide data-review>
+        <p class="story-q">{c.qReview}</p>
+        <div class="story-summary" data-story-summary></div>
+      </div>
+
+      <p class="story-error" data-story-error role="alert"></p>
+
+      <div class="story-nav" data-story-nav>
+        <button type="button" class="btn-ghost" data-story-prev hidden>{c.prev}</button>
+        <button type="submit" class="btn-primary" data-story-next>{c.next}</button>
+      </div>
+
+      <p class="story-done" data-story-done role="status">{c.success}</p>
+    </div>
+
+    <div class="hp" aria-hidden="true">
+      <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+    </div>
+  </form>
+</div>
+
+<script define:vars={{ c }}>
+  const form = document.querySelector('[data-story-contact]');
+  if (form) {
+    const box = form.querySelector('[data-story-box]');
+    const slides = Array.from(form.querySelectorAll('[data-slide]'));
+    const fieldSlides = slides.filter((s) => !s.hasAttribute('data-review'));
+    const reviewIndex = slides.length - 1;
+    const bar = form.querySelector('[data-story-bar]');
+    const counter = form.querySelector('[data-story-counter]');
+    const prevBtn = form.querySelector('[data-story-prev]');
+    const nextBtn = form.querySelector('[data-story-next]');
+    const errBox = form.querySelector('[data-story-error]');
+    const summaryBox = form.querySelector('[data-story-summary]');
+    const LABELS = { name: c.name, email: c.email, subject: c.subject, message: c.message };
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    const LANG = document.documentElement.lang === 'es' ? 'es' : 'en';
+    let index = 0;
+
+    const fieldOf = (slide) => slide.querySelector('input, select, textarea');
+
+    function validate(i) {
+      const s = slides[i];
+      if (s.hasAttribute('data-review')) return '';
+      const f = fieldOf(s);
+      const v = (f.value || '').trim();
+      if (s.dataset.required && !v) return c.errRequired;
+      if (!v) return '';
+      if (s.dataset.type === 'email' && !EMAIL_RE.test(v)) return c.errEmail;
+      if (s.dataset.key === 'name' && v.length < 2) return c.errName;
+      if (s.dataset.type === 'textarea' && v.length < 10) return c.errMessage;
+      return '';
+    }
+
+    function renderSummary() {
+      summaryBox.textContent = '';
+      for (const s of fieldSlides) {
+        const f = fieldOf(s);
+        const value = (f.value || '').trim() || '—';
+        const item = document.createElement('div');
+        item.className = 'story-sum-item';
+        const lab = document.createElement('span');
+        lab.className = 'story-sum-label';
+        lab.textContent = LABELS[s.dataset.key] || s.dataset.key;
+        const val = document.createElement('span');
+        val.className = 'story-sum-value';
+        val.textContent = value;
+        item.append(lab, val);
+        summaryBox.append(item);
+      }
+    }
+
+    function render(focus = true) {
+      slides.forEach((s, i) => s.classList.toggle('is-active', i === index));
+      bar.style.width = (index / (slides.length - 1)) * 100 + '%';
+      counter.textContent = c.step.replace('{a}', String(index + 1)).replace('{b}', String(slides.length));
+      errBox.textContent = '';
+      prevBtn.hidden = index === 0;
+      const isReview = index === reviewIndex;
+      nextBtn.textContent = isReview ? c.submit : c.next;
+      if (isReview) renderSummary();
+      if (focus) {
+        const f = fieldOf(slides[index]);
+        if (f) f.focus();
+      }
+    }
+
+    prevBtn.addEventListener('click', () => {
+      if (index > 0) {
+        index -= 1;
+        render();
+      }
+    });
+
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      form.querySelectorAll('[data-err]').forEach((el) => { el.textContent = ''; });
+      errBox.textContent = '';
+
+      const msg = validate(index);
+      if (msg) {
+        errBox.textContent = msg;
+        const f = fieldOf(slides[index]);
+        if (f) f.focus();
+        return;
+      }
+      if (index < reviewIndex) {
+        index += 1;
+        render();
+        return;
+      }
+
+      nextBtn.disabled = true;
+      nextBtn.textContent = c.sending;
+      const fd = new FormData(form);
+      try {
+        const res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            locale: LANG,
+            name: String(fd.get('name') ?? ''),
+            email: String(fd.get('email') ?? ''),
+            subject: String(fd.get('subject') ?? ''),
+            message: String(fd.get('message') ?? ''),
+            website: String(fd.get('website') ?? ''),
+          }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          box.classList.add('is-sent');
+          return;
+        }
+        const errs = data.errors || [];
+        let jumped = false;
+        for (const e of errs) {
+          const idx = fieldSlides.findIndex((s) => s.dataset.key === e.field);
+          if (idx >= 0) {
+            const slot = fieldSlides[idx].querySelector(`[data-err="${CSS.escape(e.field)}"]`);
+            if (slot) slot.textContent = e[LANG] || e.en;
+            if (!jumped) {
+              index = idx;
+              render();
+              jumped = true;
+            }
+          }
+        }
+        if (!jumped) errBox.textContent = c.loadError;
+      } catch {
+        errBox.textContent = c.loadError;
+      }
+      nextBtn.disabled = false;
+      nextBtn.textContent = index === reviewIndex ? c.submit : c.next;
+    });
+
+    form.addEventListener('input', () => { errBox.textContent = ''; });
+    render(false);
+  }
+</script>
+
+<style>
+  .wrap {
+    max-width: 72rem;
+    margin-inline: auto;
+    padding: 2.5rem 1.25rem 0;
+  }
+  .narrow > * {
+    max-width: 40rem;
+    margin-inline: auto;
+    text-align: center;
+  }
+  h1 {
+    font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+    margin: 0 0 0.5rem;
+  }
+  .intro {
+    margin: 0 0 0.75rem;
+    font-size: 1.2rem;
+  }
+  .email-line {
+    margin: 0 0 0.35rem;
+  }
+  .story-hint {
+    margin: 0 0 1.5rem;
+    font-family: var(--font-ui);
+    font-size: 0.9rem;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+  .nojs-note {
+    margin: -1rem auto 1.5rem;
+    max-width: 40rem;
+    text-align: center;
+    font-family: var(--font-ui);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+  :global(.js) .nojs-note {
+    display: none;
+  }
+  .story {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: clamp(1.5rem, 4vw, 2.25rem);
+    box-shadow: 0 20px 44px -30px rgba(38, 51, 46, 0.4);
+    text-align: left;
+  }
+  .story-progress {
+    display: none;
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--stone) 55%, transparent);
+    overflow: hidden;
+    margin-bottom: 1.1rem;
+  }
+  :global(.js) .story-progress {
+    display: block;
+  }
+  .story-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: inherit;
+    background: var(--brand);
+    transition: width 0.4s ease;
+  }
+  .story-counter {
+    display: none;
+    margin: 0 0 1rem;
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  :global(.js) .story-counter {
+    display: block;
+  }
+  /* Sin JS todos los campos se muestran apilados; con JS uno por tarjeta. */
+  .story-q {
+    display: block;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.35rem, 2.8vw, 1.7rem);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin: 0 0 1rem;
+    color: var(--text);
+  }
+  .story-slide input,
+  .story-slide select,
+  .story-slide textarea {
+    font: inherit;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-small);
+    padding: 0.65rem 0.8rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .story-slide textarea {
+    resize: vertical;
+  }
+  /* Sin JS el resumen está vacío (se puebla en runtime) → ocultarlo. */
+  :global(html:not(.js)) .story-slide[data-review] {
+    display: none;
+  }
+  :global(.js) .story-slide {
+    display: none;
+  }
+  :global(.js) .story-slide.is-active {
+    display: block;
+    animation: story-in 0.4s ease both;
+  }
+  @keyframes story-in {
+    from {
+      opacity: 0;
+      transform: translateX(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  .field-error {
+    color: #a41212;
+    margin: 0.5rem 0 0;
+    font-size: 0.95rem;
+    text-align: left;
+  }
+  [data-theme='dark'] .field-error {
+    color: #ff9d9d;
+  }
+  .story-error {
+    margin: 0.75rem 0 0;
+    min-height: 0;
+    font-size: 0.95rem;
+    color: #a41212;
+    text-align: left;
+  }
+  [data-theme='dark'] .story-error {
+    color: #ff9d9d;
+  }
+  .story-nav {
+    display: none;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: 1.75rem;
+  }
+  :global(.js) .story-nav {
+    display: flex;
+  }
+  .story-nav [data-story-prev][hidden] {
+    display: none;
+  }
+  .story-nav [data-story-prev] {
+    margin-right: auto;
+  }
+  .btn-primary {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 0.7rem 1.6rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  [data-theme='dark'] .btn-primary {
+    color: var(--on-brand);
+  }
+  .btn-primary:disabled {
+    opacity: 0.6;
+  }
+  .btn-ghost {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.65rem 1.5rem;
+    cursor: pointer;
+  }
+  .story-summary {
+    display: grid;
+    gap: 0.6rem;
+    background: color-mix(in srgb, var(--stone) 35%, transparent);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-small);
+    padding: 1rem 1.15rem;
+  }
+  /* Estos nodos se crean en runtime (renderSummary) y no reciben el
+     data-astro-cid del componente → selector :global. */
+  .story-summary :global(.story-sum-item) {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.95rem;
+  }
+  .story-summary :global(.story-sum-label) {
+    flex-shrink: 0;
+    font-family: var(--font-ui);
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .story-summary :global(.story-sum-value) {
+    font-weight: 600;
+    text-align: right;
+    word-break: break-word;
+  }
+  .story-done {
+    display: none;
+    margin: 0;
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+  :global(.js) .story.is-sent .story-progress,
+  :global(.js) .story.is-sent .story-counter,
+  :global(.js) .story.is-sent .story-slide,
+  :global(.js) .story.is-sent .story-error,
+  :global(.js) .story.is-sent .story-nav {
+    display: none !important;
+  }
+  :global(.js) .story.is-sent .story-done {
+    display: block;
+  }
+  .hp {
+    position: absolute;
+    left: -9999px;
+  }
+</style>

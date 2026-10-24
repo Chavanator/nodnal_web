@@ -1,0 +1,460 @@
+---
+import { dict, type Locale } from '../i18n/dict';
+
+// Modal amplio de inscripción (FUNCTIONAL_SPEC §2-3). <dialog> nativo:
+// foco inicial, Escape, cierre con retorno de foco. Formulario construido
+// desde /api/event-form para no duplicar la configuración del evento.
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const f = dict[locale].form;
+---
+
+<dialog class="reg-modal" data-reg-modal aria-labelledby="reg-title">
+  <div class="reg-head">
+    <h2 id="reg-title"><span data-reg-event-title></span></h2>
+    <button type="button" class="reg-close" data-reg-close aria-label={f.close}>×</button>
+  </div>
+  <div class="reg-body" data-reg-body>
+    <p class="reg-loading">…</p>
+  </div>
+</dialog>
+
+<script>
+  // Estado mínimo del modal; los textos del servidor llegan en ES y EN.
+  const LANG = document.documentElement.lang === 'es' ? 'es' : 'en';
+  const dialog = document.querySelector('[data-reg-modal]');
+  const body = document.querySelector('[data-reg-body]');
+  const titleSlot = document.querySelector('[data-reg-event-title]');
+  let opener = null;
+  let submitting = false;
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    })[c]);
+  }
+
+  function fieldError(errors, field) {
+    const hit = (errors || []).find((e) => e.field === field);
+    return hit ? hit[LANG] : '';
+  }
+
+  async function openModal(slug, title, trigger) {
+    if (!dialog || !body) return;
+    opener = trigger || null;
+    titleSlot.textContent = title;
+    body.innerHTML = '<p class="reg-loading">…</p>';
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
+    try {
+      const res = await fetch(`/api/event-form?slug=${encodeURIComponent(slug)}`);
+      if (!res.ok) throw new Error('config');
+      const cfg = await res.json();
+      renderForm(cfg);
+    } catch {
+      body.innerHTML = `<p class="reg-error" role="alert">${esc(loadErrorText())}</p>`;
+    }
+  }
+
+  function loadErrorText() {
+    return LANG === 'es' ? 'No se pudo cargar el formulario. Cierra e intenta de nuevo.' : 'Could not load the form. Close and try again.';
+  }
+
+  function paymentLabel(method) {
+    if (LANG === 'es') {
+      return method === 'transfer' ? 'Transferencia' : method === 'venmo' ? 'Venmo' : 'PayPal';
+    }
+    return method === 'transfer' ? 'Bank transfer' : method === 'venmo' ? 'Venmo' : 'PayPal';
+  }
+
+  function renderForm(cfg) {
+    const t = window.__regTexts;
+    const custom = (cfg.customFields || [])
+      .map((cf) => {
+        const req = cf.required ? ' required aria-required="true"' : '';
+        const label = `${esc(cf.label[LANG])}${cf.required ? ' *' : ''}`;
+        const input =
+          cf.type === 'number'
+            ? `<input id="cf-${cf.id}" name="cf-${cf.id}" type="number" min="0" inputmode="numeric"${req} />`
+            : `<input id="cf-${cf.id}" name="cf-${cf.id}" type="${cf.type === 'tel' ? 'tel' : 'text'}" autocomplete="off"${req} />`;
+        return `<div class="field"><label for="cf-${cf.id}">${label}</label>${input}<p class="field-error" data-err="cf-${cf.id}"></p></div>`;
+      })
+      .join('');
+    const methods = (cfg.paymentMethods || [])
+      .map(
+        (m) => `<label class="radio"><input type="radio" name="paymentMethod" value="${m}" /> ${paymentLabel(m)}</label>`,
+      )
+      .join('');
+    body.innerHTML = `
+      <form data-reg-form novalidate>
+        <div class="reg-summary">
+          <p><strong>${esc(cfg.title)}</strong> · ${esc(cfg.priceText)}</p>
+          <p class="reg-instructions">${esc(cfg.manualInstructions)}</p>
+          ${cfg.paypalNote ? `<p class="reg-note">${esc(cfg.paypalNote)}</p>` : ''}
+        </div>
+        <div class="error-summary" data-error-summary hidden tabindex="-1"></div>
+        <div class="field"><label for="reg-name">${esc(t.fullName)} *</label>
+          <input id="reg-name" name="fullName" type="text" autocomplete="name" required />
+          <p class="field-error" data-err="fullName"></p></div>
+        <div class="field"><label for="reg-email">${esc(t.email)} *</label>
+          <input id="reg-email" name="email" type="email" autocomplete="email" required />
+          <p class="field-error" data-err="email"></p></div>
+        <div class="field"><label for="reg-phone">${esc(t.phone)}</label>
+          <input id="reg-phone" name="phone" type="tel" autocomplete="tel" />
+          <p class="field-error" data-err="phone"></p></div>
+        <div class="field"><label for="reg-count">${esc(t.participants)}</label>
+          <input id="reg-count" name="participantCount" type="number" min="1" max="10" value="1" />
+          <p class="field-error" data-err="participantCount"></p></div>
+        ${custom}
+        ${
+          methods
+            ? `<fieldset class="field"><legend>${esc(t.paymentMethod)}</legend>${methods}
+               <p class="field-error" data-err="paymentMethod"></p></fieldset>
+               <div class="field"><label class="check"><input type="checkbox" name="paymentDeclared" value="yes" /> ${esc(t.declaredPaid)}</label></div>
+               <div class="field"><label for="reg-ref">${esc(t.reference)}</label>
+               <input id="reg-ref" name="providerReference" type="text" autocomplete="off" maxlength="120" /></div>`
+            : ''
+        }
+        <div class="field"><label class="check"><input type="checkbox" name="termsAccepted" value="yes" required /> ${esc(cfg.terms)} *</label>
+          <p class="field-error" data-err="terms"></p></div>
+        <p class="field-error" data-err="event" role="alert"></p>
+        <p><button type="submit" class="btn-primary" data-reg-submit>${esc(t.submit)}</button></p>
+      </form>`;
+    const first = body.querySelector('input');
+    if (first) first.focus();
+    const form = body.querySelector('[data-reg-form]');
+    form.addEventListener('submit', (ev) => submitForm(ev, cfg));
+  }
+
+  function paintErrors(errors) {
+    body.querySelectorAll('[data-err]').forEach((slot) => {
+      slot.textContent = '';
+    });
+    const summary = body.querySelector('[data-error-summary]');
+    const t = window.__regTexts;
+    if (!errors || errors.length === 0) {
+      if (summary) summary.hidden = true;
+      return;
+    }
+    const items = errors
+      .map((e) => {
+        const target = body.querySelector(`[data-err="${CSS.escape(e.field)}"]`);
+        if (target) target.textContent = e[LANG] || e.en;
+        return `<li><a href="#reg-${CSS.escape(e.field)}" data-err-link="${esc(e.field)}">${esc(e[LANG] || e.en)}</a></li>`;
+      })
+      .join('');
+    if (summary) {
+      summary.hidden = false;
+      summary.innerHTML = `<p><strong>${esc(t.errorSummary)}</strong></p><ul>${items}</ul>`;
+      summary.focus();
+    }
+  }
+
+  async function submitForm(ev, cfg) {
+    ev.preventDefault();
+    if (submitting) return;
+    submitting = true;
+    const t = window.__regTexts;
+    const submitBtn = body.querySelector('[data-reg-submit]');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = t.sending;
+    }
+    const fd = new FormData(ev.target);
+    const customAnswers = {};
+    for (const cf of cfg.customFields || []) {
+      customAnswers[cf.id] = String(fd.get(`cf-${cf.id}`) ?? '');
+    }
+    const payload = {
+      eventSlug: cfg.slug,
+      locale: LANG,
+      fullName: String(fd.get('fullName') ?? ''),
+      email: String(fd.get('email') ?? ''),
+      phone: String(fd.get('phone') ?? ''),
+      participantCount: Number(fd.get('participantCount') ?? 1),
+      customAnswers,
+      termsAccepted: fd.get('termsAccepted') === 'yes',
+      paymentMethod: fd.get('paymentMethod') ? String(fd.get('paymentMethod')) : null,
+      paymentDeclared: fd.get('paymentDeclared') === 'yes',
+      providerReference: String(fd.get('providerReference') ?? ''),
+    };
+    try {
+      const res = await fetch('/api/registrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        renderSuccess(data);
+      } else {
+        paintErrors(data.errors || []);
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = t.submit;
+        }
+      }
+    } catch {
+      body.insertAdjacentHTML(
+        'beforeend',
+        `<p class="reg-error" role="alert">${esc(t.loadError)}</p>`,
+      );
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = t.submit;
+      }
+    }
+    submitting = false;
+  }
+
+  function renderSuccess(data) {
+    const t = window.__regTexts;
+    const msg =
+      data.status === 'confirmed'
+        ? t.successConfirmed
+        : data.status === 'waitlisted'
+          ? t.successWaitlisted
+          : t.successReceived;
+    body.innerHTML = `
+      <div class="reg-success" role="status">
+        <p><strong>${esc(msg)}</strong></p>
+        <p>${esc(t.successId)}: <code>${esc(data.registrationId)}</code></p>
+        <p><button type="button" class="btn-ghost" data-reg-close>${esc(t.close)}</button></p>
+      </div>`;
+  }
+
+  function closeModal() {
+    if (!dialog) return;
+    if (typeof dialog.close === 'function' && dialog.open) dialog.close();
+    else dialog.removeAttribute('open');
+    if (opener && typeof opener.focus === 'function') opener.focus();
+    opener = null;
+  }
+
+  if (dialog && !dialog.hasAttribute('data-reg-bound')) {
+    dialog.setAttribute('data-reg-bound', '');
+    dialog.addEventListener('click', (ev) => {
+      if (ev.target === dialog) closeModal();
+    });
+    dialog.addEventListener('close', () => {
+      if (opener && typeof opener.focus === 'function') opener.focus();
+      opener = null;
+    });
+    body.addEventListener('click', (ev) => {
+      const closer = ev.target.closest('[data-reg-close]');
+      if (closer) closeModal();
+      const link = ev.target.closest('[data-err-link]');
+      if (link) {
+        ev.preventDefault();
+        const map = { fullName: 'reg-name', email: 'reg-email', phone: 'reg-phone', participantCount: 'reg-count' };
+        const field = link.getAttribute('data-err-link');
+        const id = map[field] || (field.startsWith('cf-') ? field : null);
+        const target = id ? document.getElementById(id) : null;
+        if (target) target.focus();
+      }
+    });
+  }
+
+  if (!document.documentElement.hasAttribute('data-reg-open-bound')) {
+    document.documentElement.setAttribute('data-reg-open-bound', '');
+    document.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('[data-register-btn]');
+      if (!btn) return;
+      openModal(btn.getAttribute('data-event-slug'), btn.getAttribute('data-event-title') || '', btn);
+    });
+  }
+
+</script>
+
+<script define:vars={{ f }}>
+  window.__regTexts = f;
+</script>
+
+<style is:global>
+  /* is:global: el formulario se inyecta en runtime con innerHTML y no
+     recibe el data-astro-cid del componente (mismo motivo que .js). */
+  .reg-modal {
+    width: min(44rem, calc(100vw - 2rem));
+    max-height: min(90vh, 60rem);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text);
+    padding: 0;
+  }
+  /* Entrada desde el centro: escala 0.95 → 1. */
+  .reg-modal[open] {
+    animation: reg-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes reg-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .reg-modal::backdrop {
+    background: rgb(0 0 0 / 0.55);
+    backdrop-filter: blur(4px);
+    animation: reg-bg-in 0.3s ease both;
+  }
+  @keyframes reg-bg-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reg-modal[open],
+    .reg-modal::backdrop {
+      animation: none;
+    }
+    .reg-close {
+      transition: none;
+    }
+    .reg-close:hover,
+    .reg-close:focus-visible,
+    .reg-close:active {
+      transform: none;
+    }
+  }
+  .reg-head {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+  }
+  .reg-head h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    flex: 1;
+  }
+  .reg-close {
+    font-size: 1.6rem;
+    line-height: 1;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--text);
+    border-radius: 999px;
+    width: 2.4rem;
+    height: 2.4rem;
+    cursor: pointer;
+    transition:
+      transform 0.2s ease,
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      color 0.2s ease;
+  }
+  .reg-close:hover,
+  .reg-close:focus-visible {
+    background: var(--surface-warm);
+    border-color: var(--brand);
+    color: var(--brand-ink);
+    transform: scale(1.06);
+  }
+  .reg-close:active {
+    transform: scale(0.94);
+  }
+  .reg-body {
+    padding: 1.25rem;
+    overflow-y: auto;
+    max-height: calc(min(90vh, 60rem) - 5rem);
+  }
+  .reg-summary {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--radius-small);
+    padding: 0.9rem 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .reg-summary p { margin: 0 0 0.5rem; }
+  .reg-instructions { color: var(--text-muted); font-size: 1rem; }
+  .reg-note {
+    font-size: 0.95rem;
+    color: var(--brand-ink);
+  }
+  .field { margin-bottom: 1rem; display: grid; gap: 0.35rem; }
+  .field label, .field legend {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .field input[type='text'],
+  .field input[type='email'],
+  .field input[type='tel'],
+  .field input[type='number'] {
+    font: inherit;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-small);
+    padding: 0.6rem 0.75rem;
+    max-width: 28rem;
+  }
+  .radio, .check {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    font-weight: 500;
+  }
+  .radio input, .check input {
+    width: 1.2rem;
+    height: 1.2rem;
+    margin-top: 0.15rem;
+    accent-color: var(--brand);
+  }
+  fieldset.field { border: 1px solid var(--line); border-radius: var(--radius-small); padding: 0.8rem 1rem; }
+  .field-error { color: #a41212; margin: 0; font-size: 0.95rem; min-height: 0; }
+  [data-theme='dark'] .field-error { color: #ff9d9d; }
+  .error-summary {
+    border: 2px solid #a41212;
+    border-radius: var(--radius-small);
+    padding: 0.8rem 1rem;
+    margin-bottom: 1rem;
+  }
+  .error-summary ul { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+  .btn-primary {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 0.7rem 1.5rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  [data-theme='dark'] .btn-primary { color: var(--on-brand); }
+  .btn-primary:disabled { opacity: 0.6; cursor: wait; }
+  .btn-ghost {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    color: var(--brand-ink);
+    background: transparent;
+    border: 2px solid var(--brand);
+    border-radius: 999px;
+    padding: 0.5rem 1.2rem;
+    cursor: pointer;
+  }
+  .reg-error { color: #a41212; }
+  [data-theme='dark'] .reg-error { color: #ff9d9d; }
+  .reg-success code {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+  }
+</style>

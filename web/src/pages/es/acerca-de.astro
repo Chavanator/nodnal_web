@@ -1,0 +1,154 @@
+---
+import Base from '../../layouts/Base.astro';
+
+// Fusiona About + Bio. Traducción preparada por el desarrollador,
+// pendiente de revisión por el cliente (CONTENT_AND_I18N).
+// Foto: Landon y Robin (tools/Landon+and+Robin.jpg → public/img).
+---
+<Base
+  locale="es"
+  currentKey="about"
+  title="Acerca de NODNAL"
+  description="NODNAL es un recurso para la autotransformación: propuestas de artes de sanación y un blog personal. Conoce a Landon Kinsey."
+>
+  <div class="wrap narrow">
+    <h1 data-reveal>Acerca de NODNAL</h1>
+    <p class="lede" data-reveal style="--reveal-delay: .1s">
+      Este sitio es un recurso para la autotransformación y contiene dos sitios en uno:
+      propuestas formales de artes de sanación y un blog personal.
+    </p>
+    <p data-reveal style="--reveal-delay: .2s">
+      Las propuestas profesionales incluyen coaching 1 a 1 trauma-informado, eventos de yoga
+      y travesías guiadas en la naturaleza.
+    </p>
+    <h2>Bio de Landon</h2>
+    <div class="bio-grid" data-reveal>
+      <div class="bio-text">
+        <p>
+          A mediados de sus 20, Landon vivió un despertar espiritual inesperado, que lo despertó
+          del proceso de identificarse y definirse como algo separado, y lo despertó a su forma
+          única de estar en el mundo. En los meses y años que siguieron a esta iniciación en su
+          Verdadera Naturaleza, Landon se encontró pasando largos periodos de tiempo, a solas,
+          en la naturaleza. Más tarde comenzó a explorar el mundo de las prácticas contemplativas
+          y los ritos de paso.
+        </p>
+        <p>
+          Landon practica regularmente la meditación sentada y considera la extensa tradición del
+          yoga la forma más saludable de autocuidado y prevención. Es veterano, escalador de
+          montaña y roca, habla español, escribe regularmente y toca la flauta tradicional. Reside
+          en Ecuador y frecuenta Norteamérica.
+        </p>
+      </div>
+      <figure class="bio-photo">
+        <img
+          src="/img/landon-robin.jpg"
+          alt="Landon Kinsey sentado en la naturaleza junto a su perro Robin"
+          width="1400"
+          height="1101"
+          loading="lazy"
+          decoding="async"
+        />
+        <figcaption>Landon y Robin</figcaption>
+      </figure>
+    </div>
+    <h2>Certificaciones</h2>
+    <ul class="certs">
+      <li data-reveal style="--reveal-delay: 0s">
+        <!-- Sello / acreditación -->
+        <svg width="20" height="20" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="19" r="11" /><path d="M17 28 L14 42 L24 37 L34 42 L31 28" /><path d="M19 19 l4 4 l7 -8" /></svg>
+        <span>Coach trauma-informado</span>
+      </li>
+      <li data-reveal style="--reveal-delay: .12s">
+        <!-- Loto -->
+        <svg width="20" height="20" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M24 38 c-10 0 -17 -6 -17 -12 c5 -2 11 0 14 5" /><path d="M24 38 c10 0 17 -6 17 -12 c-5 -2 -11 0 -14 5" /><path d="M24 38 c-5 -5 -6 -12 0 -20 c6 8 5 15 0 20 Z" /></svg>
+        <span>Tantra Yoga (300 horas) y Pranayama (50 horas)</span>
+      </li>
+      <li data-reveal style="--reveal-delay: .24s">
+        <!-- Montaña -->
+        <svg width="20" height="20" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 38 L18 14 L27 28 L33 20 L44 38 Z" /></svg>
+        <span>Guía de travesías en naturaleza</span>
+      </li>
+    </ul>
+    <p class="cta-row" data-reveal style="--reveal-delay: .3s">
+      <a class="btn-primary" href="/es/eventos/">Explorar eventos</a>
+    </p>
+  </div>
+  <style>
+    .wrap { max-width: 72rem; margin-inline: auto; padding: 2.5rem 1.25rem 0; }
+    .narrow > * { max-width: 68ch; }
+    .narrow > .bio-grid { max-width: 54rem; }
+    h1 { font-size: clamp(2.2rem, 4.5vw, 3.2rem); margin: 0 0 0.5rem; }
+    h2 { font-size: 1.6rem; margin: 2rem 0 0.6rem; }
+    .lede { font-size: 1.25rem; }
+    /* Bloque de bio: texto + retrato de Landon y Robin. */
+    .bio-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 0.9fr;
+      gap: 2rem;
+      align-items: start;
+      margin-top: 1rem;
+    }
+    .bio-text { display: grid; gap: 1rem; max-width: 68ch; }
+    .bio-text p { margin: 0; }
+    .bio-photo { margin: 0; }
+    .bio-photo img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .bio-photo figcaption {
+      margin-top: 0.5rem;
+      font-family: var(--font-ui);
+      font-size: 0.8rem;
+      letter-spacing: 0.03em;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    /* Certificaciones: badge vectorial + entrada en cascada. */
+    .certs {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.7rem;
+    }
+    .certs li {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+    }
+    .certs li svg {
+      flex-shrink: 0;
+      color: var(--brand);
+    }
+    /* CTA: elevación sutil con sombra expandida. */
+    .btn-primary {
+      display: inline-block;
+      font-family: var(--font-ui);
+      font-weight: 600;
+      background: var(--brand);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 0.7rem 1.5rem;
+      white-space: nowrap;
+      transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 26px -12px rgba(125, 42, 209, 0.65);
+    }
+    [data-theme='dark'] .btn-primary { color: var(--on-brand); }
+    @media (max-width: 767px) {
+      .bio-grid { grid-template-columns: 1fr; }
+      .bio-photo { max-width: 20rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .btn-primary:hover { transform: none; box-shadow: none; }
+    }
+  </style>
+</Base>
